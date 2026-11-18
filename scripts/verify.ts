@@ -428,6 +428,16 @@ async function settle(page: Page): Promise<void> {
   await page.waitForFunction(() => document.querySelector('[data-fade="in"]') !== null);
 }
 
+/** Waits until every fade that has started has finished, so colours can be measured at rest. */
+function fadesFinished(page: Page): Promise<boolean> {
+  return page
+    .waitForFunction(() => [...document.querySelectorAll('[data-fade="in"]')].every((el) => getComputedStyle(el).opacity === "1"), null, { timeout: 5000 })
+    .then(
+      () => true,
+      () => false,
+    );
+}
+
 async function scrollThrough(page: Page): Promise<void> {
   const { total, step } = await page.evaluate(() => ({
     total: document.documentElement.scrollHeight,
@@ -475,7 +485,7 @@ async function checkPage(context: BrowserContext, base: string, mode: Mode, path
       .waitForFunction(() => [...document.querySelectorAll("[data-fade]")].every((el) => el.getAttribute("data-fade") === "in"), null, { timeout: 5000 })
       .then(() => true, () => false);
     check(`${label}: every fade has played after scrolling the page`, allIn);
-    await page.waitForTimeout(mode.reduced ? 50 : 750);
+    check(`${label}: fades finish`, await fadesFinished(page));
     const fades = await page.evaluate(fadeFacts);
     check(`${label}: has fades`, fades.length > 0);
     check(`${label}: faded content ends fully visible`, fades.every((fade) => fade.opacity === "1"), JSON.stringify(fades));
@@ -718,7 +728,7 @@ async function checkKeyboard(browser: Browser, base: string, width: number): Pro
     const skip = await focused();
     equal(`${at}: first Tab lands on the skip link`, skip?.name, "Skip to content");
     check(`${at}: the skip link is visible when focused`, skip?.inViewport === true);
-    await page.waitForTimeout(750);
+    check(`${at}: fades finish`, await fadesFinished(page));
     equal(`${at}: the focused skip link passes contrast`, (await page.evaluate(contrastFacts)).failures, []);
     await page.keyboard.press("Enter");
     equal(`${at}: the skip link jumps to the content`, new URL(page.url()).hash, "#main");
@@ -793,10 +803,24 @@ async function checkKeyboard(browser: Browser, base: string, width: number): Pro
     for (const [index, target] of targets.entries()) {
       await contents.nth(index).focus();
       await page.keyboard.press("Enter");
-      await page.waitForTimeout(150);
-      const top = await page.locator(target).evaluate((node) => node.getBoundingClientRect().top);
-      const atEnd = await page.evaluate(() => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2);
-      check(`${at} docs: contents link ${target} jumps to its section`, new URL(page.url()).hash === target && ((top >= -2 && top <= 200) || atEnd), `top ${Math.round(top)}px`);
+      /* Polls instead of sleeping a fixed time, so a slow machine cannot read the position too early. */
+      const arrived = await page
+        .waitForFunction(
+          (hash) => {
+            const section = document.querySelector(hash);
+            if (!section || window.location.hash !== hash) return false;
+            const top = section.getBoundingClientRect().top;
+            const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+            return (top >= -2 && top <= 200) || atEnd;
+          },
+          target,
+          { timeout: 5000 },
+        )
+        .then(
+          () => true,
+          () => false,
+        );
+      check(`${at} docs: contents link ${target} jumps to its section`, arrived);
     }
     const copy = page.locator("main button[data-copy-state]");
     check(`${at} docs: has copy buttons`, (await copy.count()) > 5);
@@ -936,7 +960,7 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
         focused: document.activeElement === node,
       }));
       equal(`${at}: the error is tied to the field and the field takes focus`, wiring, { invalid: "true", describedByTheError: true, focused: true });
-      await s.page.waitForTimeout(750);
+      check(`${at}: fades finish`, await fadesFinished(s.page));
       equal(`${at}: an error passes contrast`, (await s.page.evaluate(contrastFacts)).failures, []);
       for (const bad of ["plainaddress", "name@", "@example.com", "name@example", "na me@example.com"]) {
         await s.email.fill(bad);
