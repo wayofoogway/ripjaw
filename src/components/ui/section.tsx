@@ -1,75 +1,72 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { Fade } from "./fade";
 
 type SectionProps = {
-  id?: string;
-  /** `default`: 80px mobile / 128px desktop. `tight`: a calm pause. `none`: the section manages its own height. */
-  spacing?: "default" | "tight" | "none";
-  /** Skip the 1200px container when the section lays out its own full-bleed layers. */
-  bleed?: boolean;
-  /** Accessible name for the landmark, when the section has no visible heading. */
-  label?: string;
-  labelledBy?: string;
-  className?: string;
+  /** Anchor id. The heading gets `<id>-title`. */
+  id: string;
+  title: ReactNode;
   children: ReactNode;
 };
 
-const SPACING = {
-  default: "py-20 lg:py-32",
-  tight: "py-14 lg:py-20",
-  none: "",
-};
-
-/** Page section: sets the vertical rhythm and the 12-column content width. */
-export function Section({
-  id,
-  spacing = "default",
-  bleed = false,
-  label,
-  labelledBy,
-  className,
-  children,
-}: SectionProps) {
+/**
+ * A page section: a thin divider, the heading on the left and the content on
+ * the right from `lg` up, stacked below it.
+ */
+export function Section({ id, title, children }: SectionProps) {
   return (
-    <section
-      id={id}
-      aria-label={label}
-      aria-labelledby={labelledBy}
-      className={cn("relative", SPACING[spacing], className)}
-    >
-      {bleed ? children : <div className="container-rj">{children}</div>}
+    <section id={id} aria-labelledby={`${id}-title`} className="border-t border-rj-line">
+      <Fade className="container-rj grid gap-x-12 gap-y-6 py-14 lg:grid-cols-12 lg:py-20">
+        <h2 id={`${id}-title`} className="text-heading lg:col-span-4">
+          {title}
+        </h2>
+        <div className="lg:col-span-8">{children}</div>
+      </Fade>
     </section>
   );
 }
 
-type SectionHeadingProps = {
-  id?: string;
-  eyebrow?: ReactNode;
+type PageIntroProps = {
   title: ReactNode;
   lede?: ReactNode;
-  align?: "left" | "center";
-  /** Heading level. Sections on a page use h2; nested blocks use h3. */
-  as?: "h2" | "h3";
-  className?: string;
+  /** Sits beside the title from `lg` up, below it otherwise. */
+  aside?: ReactNode;
+  children?: ReactNode;
 };
 
-/** Eyebrow, heading and optional lede with the shared type scale. */
-export function SectionHeading({
-  id,
-  eyebrow,
-  title,
-  lede,
-  align = "left",
-  as: Heading = "h2",
-  className,
-}: SectionHeadingProps) {
+/** The top of a page: its one h1, a line under it, and optionally a screenshot beside them. */
+export function PageIntro({ title, lede, aside, children }: PageIntroProps) {
   return (
-    <div className={cn("max-w-[44rem]", align === "center" && "mx-auto text-center", className)}>
-      {eyebrow && <p className="text-eyebrow mb-5 text-rj-dim">{eyebrow}</p>}
-      <Heading id={id} className={Heading === "h2" ? "text-display-2" : "text-display-3"}>
-        {title}
-      </Heading>
-      {lede && <p className="text-lede mt-5">{lede}</p>}
-    </div>
+    <Fade className="container-rj grid gap-x-12 gap-y-10 pt-14 pb-14 lg:grid-cols-12 lg:pt-20 lg:pb-20">
+      <div className={cn("max-w-[40rem]", aside ? "lg:col-span-7" : "lg:col-span-12")}>
+        <h1 className="text-title">{title}</h1>
+        {lede && <p className="text-lede mt-5">{lede}</p>}
+        {children}
+      </div>
+      {aside && <div className="lg:col-span-5">{aside}</div>}
+    </Fade>
+  );
+}
+
+type Row = { key: string; term: ReactNode; detail: ReactNode; note?: ReactNode; id?: string };
+
+/** Plain rows between thin dividers: a term, what it means, and optionally a short note on the right. */
+export function Rows({ rows, className }: { rows: Row[]; className?: string }) {
+  return (
+    <dl className={cn("divide-y divide-rj-line border-y border-rj-line", className)}>
+      {rows.map((row) => (
+        <div
+          key={row.key}
+          id={row.id}
+          className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-1 py-4 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_auto]"
+        >
+          <dt className="font-medium text-rj-text">{row.term}</dt>
+          <dd className="col-span-2 row-start-2 text-rj-dim sm:col-span-1 sm:col-start-2 sm:row-start-1">
+            {row.detail}
+          </dd>
+          {row.note && <dd className="col-start-2 row-start-1 text-right sm:col-start-3">{row.note}</dd>}
+        </div>
+      ))}
+    </dl>
   );
 }

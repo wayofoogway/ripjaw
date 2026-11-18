@@ -6,7 +6,7 @@ import { getRoute, site } from "@/config/site";
  * Metadata for a route listed in `site.routes`: unique title and description,
  * canonical URL, and Open Graph / X cards. Use it from every page:
  *
- *   export const metadata = routeMetadata("/pricing/");
+ *   export const metadata = routeMetadata("/features/");
  */
 export function routeMetadata(path: string): Metadata {
   const route = getRoute(path);
@@ -39,7 +39,7 @@ export function routeMetadata(path: string): Metadata {
   };
 }
 
-/** SoftwareApplication structured data for the home page. No ratings or reviews: there are none. */
+/** SoftwareApplication structured data for the home page. No price, ratings or reviews: none are published. */
 export function softwareApplicationJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -49,13 +49,7 @@ export function softwareApplicationJsonLd(): Record<string, unknown> {
     applicationCategory: "FinanceApplication",
     operatingSystem: "Telegram",
     url: site.url,
-    sameAs: [site.links.x, site.links.telegramBot],
-    offers: {
-      "@type": "Offer",
-      price: site.access.amountSol,
-      priceCurrency: "SOL",
-      description: `${site.access.descriptor} during public beta. Trading fees are separate.`,
-    },
+    sameAs: [site.links.x],
   };
 }
 

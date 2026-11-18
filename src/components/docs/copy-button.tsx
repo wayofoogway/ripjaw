@@ -2,7 +2,6 @@
 
 import { Check, Copy, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/cn";
 
 type CopyButtonProps = {
   /** Text placed on the clipboard. */
@@ -44,12 +43,7 @@ export function CopyButton({ value, labels }: CopyButtonProps) {
       type="button"
       onClick={copy}
       data-copy-state={state}
-      className={cn(
-        "inline-flex h-11 min-w-[5.75rem] shrink-0 items-center justify-center gap-2 rounded-full border px-3.5 font-mono text-[0.75rem] font-medium tracking-[0.04em] transition-colors duration-200 lg:h-9",
-        state === "idle" && "border-rj-line-strong text-rj-dim hover:border-white/30 hover:text-rj-text",
-        state === "done" && "border-rj-blue/50 bg-rj-blue/10 text-rj-text",
-        state === "failed" && "border-rj-warn/50 text-rj-warn",
-      )}
+      className="inline-flex h-11 min-w-[6.5rem] shrink-0 items-center justify-end gap-2 text-[0.9375rem] font-medium text-rj-dim transition-[color] duration-200 hover:text-rj-text"
     >
       <Glyph aria-hidden="true" className="size-3.5" strokeWidth={2} />
       <span aria-live="polite">{labels[state]}</span>
