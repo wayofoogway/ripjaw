@@ -20,7 +20,7 @@ export function Pillars() {
                 </span>
                 <div>
                   <h3 className="font-display text-[1.25rem] leading-tight font-semibold">{pillar.title}</h3>
-                  <p className="mt-2 text-[0.9375rem] leading-relaxed text-rj-dim">{pillar.body}</p>
+                  <p className="mt-2 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{pillar.body}</p>
                 </div>
               </article>
             </Reveal>

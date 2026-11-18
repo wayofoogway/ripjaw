@@ -18,7 +18,7 @@ export function Pricing() {
             {access.headline}
           </h2>
           <p className="text-lede mt-5 max-w-[34rem]">{access.body}</p>
-          <p className="mt-8 flex max-w-[34rem] items-start gap-3 text-[0.9375rem] leading-relaxed text-rj-dim">
+          <p className="mt-8 flex max-w-[34rem] items-start gap-3 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">
             <Info aria-hidden="true" className="mt-1 size-4 shrink-0 text-rj-caption" strokeWidth={1.75} />
             {access.paymentNote}
           </p>
@@ -42,7 +42,7 @@ export function Pricing() {
 
               <ul className="mt-7 space-y-3 border-t border-rj-line pt-7">
                 {access.points.map((point) => (
-                  <li key={point} className="flex items-start gap-3 text-[0.9375rem] leading-relaxed text-rj-text">
+                  <li key={point} className="flex items-start gap-3 text-base leading-relaxed text-rj-text lg:text-[0.9375rem]">
                     <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-[#8FAEFF]" strokeWidth={2.25} />
                     {point}
                   </li>
@@ -51,11 +51,15 @@ export function Pricing() {
 
               <TelegramCta label={site.cta.pricing.label} location="pricing" size="lg" className="mt-8 w-full" />
 
-              <p className="mt-6 text-[0.8125rem] leading-relaxed text-rj-dim">{access.disclosure}</p>
+              <div className="mt-7 border-t border-rj-line pt-6">
+                <h3 className="text-eyebrow text-rj-caption">Trading costs are separate</h3>
+                <p className="mt-3 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{access.disclosure}</p>
+                {speedFees.pendingVerification && (
+                  <p className="mt-2 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{speedFees.pendingCopy}</p>
+                )}
+              </div>
 
-              {speedFees.pendingVerification ? (
-                <p className="mt-2 text-[0.8125rem] leading-relaxed text-rj-dim">{speedFees.pendingCopy}</p>
-              ) : (
+              {!speedFees.pendingVerification && (
                 <details className="group mt-5 border-t border-rj-line pt-4">
                   <summary className="flex min-h-11 cursor-pointer items-center justify-between text-[0.9375rem] font-medium text-rj-text">
                     Speed fees per trade

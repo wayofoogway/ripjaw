@@ -517,10 +517,10 @@ function ResultGroup({ result, label, tokens, order }: { result: TokenResult; la
 function AlertScene({ confirmNote }: { confirmNote: string }) {
   const progress = useSceneProgress();
   const pinned = usePinned();
-  const lockY = useRange(progress, within(3, 0, 1), [70, -30]);
+  const lockY = useRange(progress, within(3, 0, 1), [80, 0]);
   const lockScale = useRange(progress, within(3, 0, 0.5), [0.9, 1]);
-  const confirmY = useRange(progress, within(3, 0, 1), [130, -56]);
-  const confirmScale = useRange(progress, within(3, 0, 0.55), [0.92, 1.02]);
+  const confirmY = useRange(progress, within(3, 0, 1), [150, -8]);
+  const confirmScale = useRange(progress, within(3, 0, 0.55), [0.92, 1]);
   const noteOpacity = useRange(progress, within(3, 0.35, 0.55), [0, 1]);
   const noteY = useRange(progress, within(3, 0.35, 1), [24, -12]);
 

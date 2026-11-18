@@ -65,7 +65,7 @@ export function Hero() {
           <div className="absolute inset-x-0 bottom-[8%] mx-auto size-[420px] rounded-full bg-[radial-gradient(closest-side,rgb(153_69_255/0.22),transparent)] lg:hidden" />
         </ParallaxLayer>
 
-        <div className="container-rj grid flex-1 items-center gap-y-14 pt-10 pb-16 lg:grid-cols-12 lg:gap-x-6 lg:pt-6 lg:pb-24">
+        <div className="container-rj grid flex-1 items-center gap-y-12 pt-8 pb-16 lg:grid-cols-12 lg:gap-x-6 lg:pt-6 lg:pb-24">
           {/* Content plane */}
           <div className="lg:col-span-6">
             <Pill tone="beta">{site.beta.eyebrow}</Pill>
@@ -116,7 +116,7 @@ export function Hero() {
                   </div>
                 </ParallaxLayer>
 
-                <ParallaxLayer y={[0, -136]} className="absolute bottom-[3%] left-[-9%] w-[44%] min-w-[10.5rem]" aria-hidden>
+                <ParallaxLayer y={[0, -136]} className="absolute bottom-[3%] left-0 w-[44%] min-w-[10.5rem] lg:left-[-9%]" aria-hidden>
                   <div className="glass rounded-2xl p-3 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.9)]">
                     <p className="mb-2 font-mono text-[0.625rem] tracking-[0.12em] text-rj-caption uppercase">Safety Check</p>
                     <ul className="space-y-1 text-[0.8125rem] leading-snug text-rj-text">
@@ -133,7 +133,7 @@ export function Hero() {
                   </div>
                 </ParallaxLayer>
 
-                <figcaption className="absolute inset-x-0 -bottom-9 text-center font-mono lg:text-right text-[0.6875rem] tracking-[0.08em] text-rj-caption lg:-bottom-8">
+                <figcaption className="absolute inset-x-0 -bottom-9 text-center font-mono text-[0.6875rem] tracking-[0.08em] text-rj-caption lg:-bottom-8 lg:text-right">
                   {hero.mockupCaption}
                 </figcaption>
               </figure>

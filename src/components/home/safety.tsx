@@ -35,28 +35,28 @@ export function Safety() {
             <dl className="divide-y divide-rj-line border-y border-rj-line">
               {safety.checks.map((check) => (
                 <div key={check.name} className="grid gap-x-6 gap-y-1 py-3.5 sm:grid-cols-[11rem_1fr]">
-                  <dt className="text-[0.9375rem] font-medium text-rj-text">{check.name}</dt>
-                  <dd className="text-[0.9375rem] leading-relaxed text-rj-dim">{check.detail}</dd>
+                  <dt className="text-base font-medium text-rj-text sm:text-[0.9375rem]">{check.name}</dt>
+                  <dd className="text-base leading-relaxed text-rj-dim sm:text-[0.9375rem]">{check.detail}</dd>
                 </div>
               ))}
             </dl>
           </Reveal>
         </div>
 
-        <figure className="relative mx-auto w-full max-w-[30rem] lg:col-span-6 lg:max-w-none">
-          <ParallaxLayer y={[16, -16]} className="relative" aria-hidden>
+        <figure className="relative mx-auto aspect-[5/4.6] w-full max-w-[34rem] lg:col-span-6 lg:max-w-none">
+          <ParallaxLayer y={[18, -18]} className="absolute inset-y-0 -left-[16%] w-[112%]" aria-hidden>
             <Picture
               asset={assets.safetyShieldConcept}
               alt=""
-              sizes="(min-width: 1024px) 600px, 100vw"
-              imgClassName="block h-auto w-full opacity-60 [mask-image:radial-gradient(closest-side,#000_45%,transparent)] lg:scale-110"
+              sizes="(min-width: 1024px) 680px, 112vw"
+              imgClassName="size-full object-cover opacity-80 [mask-image:radial-gradient(closest-side,#000_50%,transparent)]"
             />
           </ParallaxLayer>
-          <ParallaxLayer y={[30, -30]} className="absolute top-1/2 left-1/2 w-[46%] -translate-x-1/2 -translate-y-1/2 lg:w-[44%]">
+          <ParallaxLayer y={[44, -44]} className="absolute top-1/2 right-[3%] w-[40%] -translate-y-1/2 rotate-3">
             <PhoneMockup
               asset={assets.phoneSafetyCheck}
               alt="Ripjaw Safety Check in Telegram for the token BONK: incomplete, 60 out of 100, 10 of 15 checks read. Mint and freeze revoked, LP locked, sell test passed; metadata, dev wallet and socials unread."
-              sizes="(min-width: 1024px) 440px, 72vw"
+              sizes="(min-width: 1024px) 400px, 64vw"
               grounded
             />
           </ParallaxLayer>
@@ -82,8 +82,8 @@ export function Safety() {
                     <Glyph aria-hidden="true" className="size-5 shrink-0" strokeWidth={2} />
                     {verdict.label}
                   </h4>
-                  <p className="mt-3 text-[0.9375rem] leading-relaxed text-rj-dim">{verdict.meaning}</p>
-                  <div className="mt-5 rounded-2xl bg-tg-bg p-2.5 md:mt-auto md:translate-y-0">
+                  <p className="mt-3 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{verdict.meaning}</p>
+                  <div className="mt-5 rounded-2xl bg-tg-bg p-2.5 md:mt-auto">
                     <TgBubble>{verdict.excerpt}</TgBubble>
                   </div>
                 </article>

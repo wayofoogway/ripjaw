@@ -35,7 +35,6 @@ export const assets = {
   phoneHomeWallet: phone("home-wallet"),
   phoneSafetyCheck: phone("safety-check"),
   phoneLockscreenAlert: phone("lockscreen-alert"),
-  phoneMemeRadarAlert: phone("meme-radar-alert"),
   phoneSnipeConfirm: phone("snipe-confirm"),
 
   chatHomeMenu: { base: "/mockups/chat-home-menu", widths: [460, 920], width: 920, height: 1290 },

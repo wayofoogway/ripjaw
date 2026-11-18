@@ -74,8 +74,12 @@ export function BentoGrid({ cells, categories, all }: BentoGridProps) {
             <Link
               href={cell.href}
               className={cn(
-                "panel card-hover group relative flex h-full flex-col overflow-hidden p-5",
-                cell.size === "featured" ? "min-h-[20rem] lg:p-7" : "min-h-[11.5rem]",
+                "panel card-hover group relative h-full overflow-hidden",
+                cell.size === "standard"
+                  ? "grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 p-4 sm:flex sm:min-h-[11.5rem] sm:flex-col sm:items-stretch sm:gap-0 sm:p-5"
+                  : "flex flex-col p-5",
+                cell.size === "featured" && "min-h-[20rem] lg:p-7",
+                cell.size === "wide" && "min-h-[11.5rem]",
               )}
             >
               {cell.size === "featured" && (
@@ -100,19 +104,32 @@ export function BentoGrid({ cells, categories, all }: BentoGridProps) {
                 </span>
               )}
 
-              <span className="relative flex items-start justify-between gap-3">
+              {/* On small screens a standard card is a compact row: icon, then title over status. */}
+              <span className={cn("relative items-start justify-between gap-3", cell.size === "standard" ? "contents sm:flex" : "flex")}>
                 <span
                   className={cn(
                     "grid shrink-0 place-items-center rounded-xl border border-rj-line bg-rj-surface-2 text-rj-text",
                     cell.size === "featured" ? "size-12" : "size-10",
+                    cell.size === "standard" && "row-span-2",
                   )}
                 >
                   <Icon name={cell.icon} className={cell.size === "featured" ? "size-6" : "size-5"} />
                 </span>
-                <StatusBadge size="sm" status={cell.status} label={cell.statusLabel} />
+                <StatusBadge
+                  size="sm"
+                  status={cell.status}
+                  label={cell.statusLabel}
+                  className={cn(cell.size === "standard" && "col-start-2 row-start-2 justify-self-start")}
+                />
               </span>
 
-              <span className={cn("relative mt-auto block pt-5", cell.size === "wide" && "sm:max-w-[62%]")}>
+              <span
+                className={cn(
+                  "relative block",
+                  cell.size === "standard" ? "col-start-2 row-start-1 sm:mt-auto sm:pt-5" : "mt-auto pt-5",
+                  cell.size === "wide" && "sm:max-w-[62%]",
+                )}
+              >
                 <span
                   className={cn(
                     "flex items-center gap-1.5 font-display font-semibold tracking-tight text-rj-text",
@@ -127,9 +144,10 @@ export function BentoGrid({ cells, categories, all }: BentoGridProps) {
                 </span>
                 <span
                   className={cn(
-                    "mt-1.5 block leading-relaxed text-rj-dim",
-                    cell.size === "featured" ? "max-w-[30rem] text-[0.9375rem]" : "text-[0.8125rem]",
-                    cell.size === "standard" && "line-clamp-3",
+                    "mt-1.5 leading-relaxed text-rj-dim",
+                    cell.size === "featured" && "block max-w-[30rem] text-base sm:text-[0.9375rem]",
+                    cell.size === "wide" && "block text-base sm:text-[0.8125rem]",
+                    cell.size === "standard" && "line-clamp-3 hidden text-[0.8125rem] sm:[display:-webkit-box]",
                   )}
                 >
                   {cell.summary}

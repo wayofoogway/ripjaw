@@ -31,7 +31,7 @@ export function SiteFooter() {
   const owner = site.legal.entityName.confirmed ? site.legal.entityName.value : site.name;
 
   return (
-    <footer id="site-footer" className="relative border-t border-rj-line bg-rj-bg pb-24 lg:pb-0">
+    <footer id="site-footer" className="relative border-t border-rj-line bg-rj-bg">
       <div className="container-rj py-16 lg:py-20">
         <div className="grid gap-x-8 gap-y-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
@@ -59,7 +59,7 @@ export function SiteFooter() {
             <Column title="Official links">
               <li>
                 <TelegramCta
-                  label={`Telegram ${site.links.telegramBotHandle}`}
+                  label={site.links.telegramBotHandle}
                   location="footer-links"
                   variant="ghost"
                   className="min-h-11 text-[0.9375rem] font-normal text-rj-dim hover:text-rj-text hover:no-underline lg:min-h-9"

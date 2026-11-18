@@ -25,7 +25,7 @@ export function Referrals() {
 
           <ol className="mt-7 space-y-3">
             {referralsSection.steps.map((step, index) => (
-              <li key={step} className="flex gap-3.5 text-[0.9375rem] leading-relaxed text-rj-text">
+              <li key={step} className="flex gap-3.5 text-base leading-relaxed text-rj-text lg:text-[0.9375rem]">
                 <span
                   aria-hidden="true"
                   className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border border-rj-line-strong font-mono text-[0.6875rem] text-rj-dim"
@@ -38,7 +38,7 @@ export function Referrals() {
           </ol>
 
           {referrals.rewards.pendingVerification ? (
-            <p className="mt-7 text-[0.9375rem] leading-relaxed text-rj-dim">{referrals.rewards.pendingCopy}</p>
+            <p className="mt-7 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{referrals.rewards.pendingCopy}</p>
           ) : (
             <dl className="mt-7 divide-y divide-rj-line border-y border-rj-line">
               {referrals.rewards.items.map((item) => (

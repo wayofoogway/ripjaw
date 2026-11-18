@@ -8,8 +8,8 @@
  *
  * Three kit mockups are re-rendered from the kit's own HTML sources instead of
  * being copied:
- *  - the Meme Radar alert, snipe-confirm and lock-screen phones, with the real
- *    person's handle replaced by `site.demo.sampleHandle`;
+ *  - the snipe-confirm and lock-screen phones, with the real person's handle
+ *    replaced by `site.demo.sampleHandle`;
  *  - the lock screen also loses its second notification, which showed a
  *    completed purchase and an unverified per-trade fee;
  *  - a second home-menu phone anchored to the top of the chat, so the wallet
@@ -81,10 +81,6 @@ const recipes: Record<AssetKey, Recipe> = {
         "home-wallet phone",
       ),
   },
-  phoneMemeRadarAlert: {
-    from: "render",
-    html: () => withSampleHandle(kitHtml("02-meme-radar-alert-phone.html"), "meme-radar-alert phone"),
-  },
   phoneSnipeConfirm: {
     from: "render",
     html: () => withSampleHandle(kitHtml("03-snipe-confirm-phone.html"), "snipe-confirm phone"),
@@ -139,16 +135,18 @@ function dataUri(path: string, mime: string): string {
 }
 
 function ogCardHtml(): string {
-  const font = (pkg: string, file: string) =>
-    dataUri(join(root, "node_modules/@fontsource", pkg, "files", file), "font/woff2");
+  const font = (family: string) =>
+    dataUri(
+      join(root, "node_modules/@fontsource-variable", family, "files", `${family}-latin-wght-normal.woff2`),
+      "font/woff2",
+    );
   const lockup = dataUri(join(kit, "brand/logo/ripjaw-lockup-horizontal.svg"), "image/svg+xml");
   const background = dataUri(join(kit, "images/hero-bg-desktop.jpg"), "image/jpeg");
   const [first, ...rest] = site.tagline.split(". ");
   if (!first || rest.length !== 1) throw new Error("og card: tagline must be two sentences");
   return `<!doctype html><html><head><style>
-@font-face{font-family:"Space Grotesk";font-weight:700;src:url(${font("space-grotesk", "space-grotesk-latin-700-normal.woff2")})}
-@font-face{font-family:"Inter";font-weight:400;src:url(${font("inter", "inter-latin-400-normal.woff2")})}
-@font-face{font-family:"Inter";font-weight:500;src:url(${font("inter", "inter-latin-500-normal.woff2")})}
+@font-face{font-family:"Space Grotesk";font-weight:300 700;src:url(${font("space-grotesk")})}
+@font-face{font-family:"Inter";font-weight:100 900;src:url(${font("inter")})}
 *{box-sizing:border-box;margin:0}
 body{width:1200px;height:630px;background:#0B0C10;color:#F5F6FA;font-family:Inter,sans-serif;position:relative;overflow:hidden;-webkit-font-smoothing:antialiased}
 .bg{position:absolute;inset:0;background:url(${background}) right center/cover}

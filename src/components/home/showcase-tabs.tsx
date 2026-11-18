@@ -87,7 +87,9 @@ export function ShowcaseTabs({ items }: { items: ShowcaseItem[] }) {
                 <span className="font-display text-[0.9375rem] font-semibold whitespace-nowrap lg:text-[1.375rem] lg:tracking-tight">
                   {item.title}
                 </span>
-                <StatusBadge size="sm" status={item.status} label={item.statusLabel} className="hidden lg:inline-flex" />
+                <span className="hidden lg:block">
+                  <StatusBadge size="sm" status={item.status} label={item.statusLabel} />
+                </span>
               </span>
               <span
                 className={cn(

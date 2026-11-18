@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { Providers } from "@/components/layout/providers";
@@ -9,16 +9,22 @@ import { StickyMobileCta } from "@/components/layout/sticky-mobile-cta";
 import { featureStatusMeta, getFeature, site } from "@/config/site";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+/* Fonts are self-hosted from pinned npm packages, so a build never depends on a font service. */
+const spaceGrotesk = localFont({
+  src: "../../node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2",
+  weight: "300 700",
   variable: "--font-space-grotesk",
   display: "swap",
 });
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const inter = localFont({
+  src: "../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+  variable: "--font-inter",
+  display: "swap",
+});
+const jetbrainsMono = localFont({
+  src: "../../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2",
+  weight: "100 800",
   variable: "--font-jetbrains-mono",
   display: "swap",
 });
