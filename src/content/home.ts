@@ -284,16 +284,20 @@ function memeRadarAnswer(): string {
   }
 }
 
+/** How to look fees up in the bot. Null until the command is verified on the live bot. */
+export const feesCommandNote: string | null = site.speedFees.botCommand.verifiedOnLiveBot
+  ? `Send ${site.speedFees.botCommand.command} in the bot to see current fees at any time.`
+  : null;
+
 function otherFeesAnswer(): string {
   const base =
     "Trading costs are separate from the access fee. A trade can carry a Ripjaw speed fee, Solana network and priority fees, optional tips, and price impact.";
+  const command = feesCommandNote === null ? "" : ` ${feesCommandNote}`;
   if (site.speedFees.pendingVerification) {
-    const command = site.speedFees.botCommand;
-    const instruction = command.verifiedOnLiveBot ? ` Send ${command.command} in the bot to see them at any time.` : "";
-    return `${base} ${site.speedFees.pendingCopy}${instruction} Check fees before trading.`;
+    return `${base} ${site.speedFees.pendingCopy}${command} Check fees before trading.`;
   }
   const tiers = site.speedFees.tiers.map((t) => `${t.mode} ${t.feeSol} SOL`).join(", ");
-  return `${base} Ripjaw speed fees per trade: ${tiers}. ${site.speedFees.publishedNote}`;
+  return `${base} Ripjaw speed fees per trade: ${tiers}. ${site.speedFees.publishedNote}${command}`;
 }
 
 export const faq: { id: string; question: string; answer: string }[] = [

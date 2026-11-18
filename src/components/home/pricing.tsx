@@ -1,5 +1,6 @@
 import { Check, Info } from "lucide-react";
 import { site } from "@/config/site";
+import { feesCommandNote } from "@/content/home";
 import { Reveal } from "../ui/reveal";
 import { Section } from "../ui/section";
 import { Pill } from "../ui/status-badge";
@@ -56,6 +57,9 @@ export function Pricing() {
                 <p className="mt-3 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{access.disclosure}</p>
                 {speedFees.pendingVerification && (
                   <p className="mt-2 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{speedFees.pendingCopy}</p>
+                )}
+                {feesCommandNote !== null && (
+                  <p className="mt-2 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">{feesCommandNote}</p>
                 )}
               </div>
 
