@@ -147,7 +147,7 @@ export const site = {
     announcement: {
       text: "Ripjaw is in public beta. Access is a one-time 1 SOL fee, paid inside Telegram.",
       linkLabel: "See pricing",
-      href: "/#pricing",
+      href: "/pricing/",
     },
   },
 
@@ -202,6 +202,7 @@ export const site = {
 
   referrals: {
     showOnHome: true,
+    showOnPricing: true,
     status: "unverified" as FeatureStatus,
     headline: "Share Ripjaw with a link.",
     body: "Ripjaw has a referral program that runs inside the bot. Your personal link is shown in Telegram, and a friend who opens it starts the bot with your code attached.",
@@ -256,6 +257,11 @@ export const site = {
   support: {
     contact: { confirmed: false } as OwnerFact<{ label: string; href: string }>,
     communityChannel: { confirmed: false } as OwnerFact<{ label: string; href: string }>,
+  },
+
+  analytics: {
+    /** Name of the analytics service this website loads. Unconfirmed means the site loads none. */
+    provider: { confirmed: false } as OwnerFact<string>,
   },
 
   seo: {
