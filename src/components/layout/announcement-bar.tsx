@@ -21,7 +21,7 @@ export function AnnouncementBar({ text, linkLabel, href }: AnnouncementBarProps)
           {text}{" "}
           <Link
             href={href}
-            className="group inline-flex items-center gap-1 font-medium whitespace-nowrap text-rj-text underline-offset-4 hover:underline"
+            className="group relative inline-flex items-center gap-1 font-medium whitespace-nowrap text-rj-text underline-offset-4 after:absolute after:-inset-x-2 after:-inset-y-3.5 hover:underline"
           >
             {linkLabel}
             <ArrowRight

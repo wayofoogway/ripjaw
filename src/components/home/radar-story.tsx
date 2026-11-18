@@ -44,14 +44,17 @@ export type RadarStoryProps = {
 /*
  * Pinned mode (desktop, motion allowed): the section is 4.6 viewports tall and
  * its stage sticks. Scroll progress 0..1 is split into four equal acts. Each
- * act's visual cross-fades in the same place while its inner pieces move at
+ * act's visual takes over the same place while its inner pieces move at
  * their own depths. The page scrolls normally throughout; nothing is hijacked.
  *
  * Stacked mode (mobile, reduced motion, no script): the same markup is a
  * plain numbered sequence, each act followed by its finished visual.
  */
 const ACTS = 4;
-const FADE = 0.035;
+/* An act's visual leaves just before the boundary and the next one arrives just
+   after it, so two scenes are never readable on top of each other. */
+const LEAVE = { from: 0.045, to: 0.008 };
+const ARRIVE = { from: 0.008, to: 0.035 };
 
 /** Progress window in which act `index` is on stage. */
 function actWindow(index: number): [number, number] {
@@ -223,18 +226,9 @@ function Act({ index, act, active, reached, previewTag, children }: ActProps) {
   const first = index === 0;
   const last = index === ACTS - 1;
 
-  const opacity = useTransform(
-    progress,
-    [start - FADE, start + FADE, end - FADE, end + FADE],
-    [first ? 1 : 0, 1, 1, last ? 1 : 0],
-    { clamp: true },
-  );
-  const y = useTransform(
-    progress,
-    [start - FADE, start + FADE, end - FADE, end + FADE],
-    [first ? 0 : 56, 0, 0, last ? 0 : -56],
-    { clamp: true },
-  );
+  const stops = [start - ARRIVE.from, start + ARRIVE.to, end - LEAVE.from, end - LEAVE.to];
+  const opacity = useTransform(progress, stops, [first ? 1 : 0, 1, 1, last ? 1 : 0], { clamp: true });
+  const y = useTransform(progress, stops, [first ? 0 : 56, 0, 0, last ? 0 : -40], { clamp: true });
   const railFill = useRange(progress, [start, end], [0, 1]);
 
   return (

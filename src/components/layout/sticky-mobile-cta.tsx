@@ -15,8 +15,9 @@ type StickyMobileCtaProps = {
 const SHOW_AFTER_PX = 640;
 
 /**
- * Telegram call to action pinned to the bottom of small screens. It appears
- * once the first screen has scrolled away, and steps aside for the footer.
+ * Telegram call to action pinned to the bottom of phone-width screens, where
+ * the nav has no room for its own button. It appears once the first screen
+ * has scrolled away, and steps aside for the footer.
  */
 export function StickyMobileCta({ label, reminder, hideWhenVisibleId }: StickyMobileCtaProps) {
   const [pastFirstScreen, setPastFirstScreen] = useState(false);
@@ -38,7 +39,7 @@ export function StickyMobileCta({ label, reminder, hideWhenVisibleId }: StickyMo
     <div
       inert={!visible}
       className={cn(
-        "safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-rj-line bg-rj-bg/90 backdrop-blur-lg transition-transform duration-300 ease-out-soft lg:hidden",
+        "safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-rj-line bg-rj-bg/90 backdrop-blur-lg transition-transform duration-300 ease-out-soft sm:hidden",
         visible ? "translate-y-0" : "translate-y-full",
       )}
     >

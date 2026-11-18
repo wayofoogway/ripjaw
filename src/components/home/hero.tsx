@@ -116,7 +116,7 @@ export function Hero() {
                   </div>
                 </ParallaxLayer>
 
-                <ParallaxLayer y={[0, -136]} className="absolute bottom-[3%] left-0 w-[44%] min-w-[10.5rem] lg:left-[-9%]" aria-hidden>
+                <ParallaxLayer y={[0, -136]} className="absolute bottom-[3%] left-0 w-[44%] min-w-[10.5rem] xl:left-[-6%]" aria-hidden>
                   <div className="glass rounded-2xl p-3 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.9)]">
                     <p className="mb-2 font-mono text-[0.625rem] tracking-[0.12em] text-rj-caption uppercase">Safety Check</p>
                     <ul className="space-y-1 text-[0.8125rem] leading-snug text-rj-text">

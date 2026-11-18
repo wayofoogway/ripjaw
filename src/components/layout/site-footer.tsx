@@ -35,7 +35,7 @@ export function SiteFooter() {
       <div className="container-rj py-16 lg:py-20">
         <div className="grid gap-x-8 gap-y-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <Link href="/" aria-label="Ripjaw home" className="inline-flex rounded-lg">
+            <Link href="/" aria-label="Ripjaw home" className="inline-flex h-11 items-center rounded-lg">
               <Lockup className="h-8 w-auto" />
             </Link>
             <p className="mt-5 max-w-sm text-[0.9375rem] leading-relaxed text-rj-dim">
