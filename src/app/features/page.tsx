@@ -1,41 +1,77 @@
-import { Category } from "@/components/features/category";
-import { FeaturesHero } from "@/components/features/hero";
-import { FinalCta } from "@/components/home/final-cta";
-import { AnchorNav } from "@/components/ui/anchor-nav";
-import { getFeature, site, visibleFeatures } from "@/config/site";
-import { deepDives, sectionNavLabel } from "@/content/features";
+import Link from "next/link";
+import { EarlyAccessSection } from "@/components/early-access/early-access";
+import { Screenshot } from "@/components/ui/screenshot";
+import { PageIntro, Rows, Section } from "@/components/ui/section";
+import { StatusLabel } from "@/components/ui/status-label";
+import { featureStatusMeta, site, visibleFeatures } from "@/config/site";
+import { featureLinks, intro, legend, limitationLabel } from "@/content/features";
 import { routeMetadata } from "@/lib/metadata";
 
 export const metadata = routeMetadata("/features/");
 
 export default function FeaturesPage() {
   const features = visibleFeatures();
-  const visibleIds = new Set(features.map((feature) => feature.id));
-  /* Deep dives alternate sides down the whole page, not per category. */
-  const dives = deepDives
-    .filter((dive) => visibleIds.has(dive.featureId))
-    .map((dive, index) => ({ feature: getFeature(dive.featureId), dive, flip: index % 2 === 1 }));
   const categories = site.featureCategories
     .map((category) => ({ category, features: features.filter((feature) => feature.category === category.id) }))
     .filter((entry) => entry.features.length > 0);
 
   return (
     <>
-      <FeaturesHero />
-      <AnchorNav
-        label={sectionNavLabel}
-        items={categories.map(({ category, features: list }) => ({ id: category.id, label: category.label, count: list.length }))}
-      />
-      {categories.map(({ category, features: list }, index) => (
-        <Category
-          key={category.id}
-          category={category}
-          number={index + 1}
-          features={list}
-          dives={dives.filter(({ feature }) => feature.category === category.id)}
-        />
+      <PageIntro
+        title={intro.title}
+        lede={intro.lede}
+        aside={
+          <Screenshot
+            asset="chatHomeMenu"
+            alt={intro.screenshot.alt}
+            caption={intro.screenshot.caption}
+            priority
+            className="lg:ml-auto"
+          />
+        }
+      >
+        <div className="mt-10">
+          <h2 className="text-label mb-3 text-rj-caption">{legend.label}</h2>
+          <Rows
+            rows={legend.items.map((item) => ({ key: item.status, term: item.label, detail: item.explanation }))}
+          />
+        </div>
+      </PageIntro>
+
+      {categories.map(({ category, features: list }) => (
+        <Section key={category.id} id={category.id} title={category.label}>
+          <Rows
+            rows={list.map((feature) => {
+              const link = featureLinks[feature.id];
+              return {
+                key: feature.id,
+                id: feature.id,
+                term: feature.title,
+                detail: (
+                  <>
+                    <p>{feature.summary}</p>
+                    {feature.limitation && (
+                      <p className="mt-1">
+                        {limitationLabel}: {feature.limitation}
+                      </p>
+                    )}
+                    {link && (
+                      <p>
+                        <Link href={link.href} className="link">
+                          {link.label}
+                        </Link>
+                      </p>
+                    )}
+                  </>
+                ),
+                note: <StatusLabel status={feature.status} label={featureStatusMeta[feature.status].label} />,
+              };
+            })}
+          />
+        </Section>
       ))}
-      <FinalCta />
+
+      <EarlyAccessSection />
     </>
   );
 }

@@ -21,7 +21,7 @@ const IRREVERSIBLE = "Solana transactions cannot be reversed once they confirm."
 
 export const refundStatement: string = legal.refundPolicy.confirmed
   ? `${legal.refundPolicy.value} ${IRREVERSIBLE}`
-  : `Refund terms have not been published yet. ${IRREVERSIBLE} Do not pay the access fee on the assumption that it can be refunded.`;
+  : `Refund terms have not been published yet. ${IRREVERSIBLE}`;
 
 export const supportContact: { label: string; href: string } | null = support.contact.confirmed
   ? support.contact.value

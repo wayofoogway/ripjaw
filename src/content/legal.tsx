@@ -2,7 +2,7 @@ import "server-only";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { LongFormSection } from "@/components/ui/long-form";
-import { featureStatusMeta, getFeature, site } from "@/config/site";
+import { earlyAccessDestination, featureStatusMeta, getFeature, site } from "@/config/site";
 import {
   analyticsStatement,
   locationsOpenItem,
@@ -18,17 +18,19 @@ import {
  * Terms, Privacy and Risk. The text starts from the kit's legal draft and is
  * a draft until a lawyer has reviewed it (`site.legal.reviewed`). Facts the
  * owner has not confirmed come from `owner-facts.ts`: they are left out or
- * stated as unpublished, never filled in.
+ * stated as unpublished, never filled in. What Privacy says about email
+ * addresses follows `site.earlyAccess.state`.
  */
 
-export type LegalDocument = { eyebrow: string; title: string; lede: string; sections: LongFormSection[] };
+export type LegalDocument = { title: string; lede: string; sections: LongFormSection[] };
 
-const { access, legal, links, speedFees } = site;
+const { earlyAccess, legal, links, referral } = site;
 const handle = links.telegramBotHandle;
 const name = site.name;
 
 const ELIGIBILITY = "You must be of legal age and allowed to use these services where you live. Checking that is your responsibility.";
 const THIRD_PARTY_SERVICES = "RPC providers, Jupiter, Jito, Pump.fun, DexScreener and X";
+const FEES = `Using the bot can carry fees charged by ${name}, and every trade carries Solana network costs and price impact. Fees are not published on this website.`;
 
 function section(id: string, heading: string, content: ReactNode): LongFormSection {
   return { id, heading, content };
@@ -83,15 +85,38 @@ function contact(purpose: string): LongFormSection[] {
 
 function memeRadarRiskNote(): string {
   const radar = getFeature("meme-radar");
-  return radar.status === "available_beta" || radar.status === "limited_beta"
-    ? "Meme Radar alerts are automated. They can be wrong or late, and a Snipe always asks you to confirm."
-    : `Meme Radar is ${featureStatusMeta[radar.status].label.toLowerCase()} and appears on this site as a preview with demo data.`;
+  return radar.status === "early_access" || radar.status === "limited"
+    ? `${radar.title} alerts are automated. They can be wrong or late.`
+    : `${radar.title} is ${featureStatusMeta[radar.status].label.toLowerCase()} and is not available.`;
+}
+
+/** What Privacy says about the early access form. On hold there is no form, and the page says so. */
+function earlyAccessPrivacy(): { paragraphs: string[]; openItems: string[] } {
+  switch (earlyAccess.state) {
+    case "on_hold":
+      return {
+        paragraphs: [
+          "Early access sign-up is not open yet. This site has no forms, and it collects no email addresses.",
+          "When sign-up opens, this section will say what the form collects and how it is used.",
+        ],
+        openItems: [],
+      };
+    case "open":
+      return {
+        paragraphs: [
+          `The early access form asks for one thing: your email address. It is used to contact you about ${name} early access.`,
+          `The form sends your email address to ${new URL(earlyAccessDestination()).host}.`,
+          `If you opened this site through a link with a referral code (?${referral.queryParam}=), the code is sent with your sign-up. It is kept in your browser’s session storage until you close the tab.`,
+          "To be removed from the list, see “Your requests” below.",
+        ],
+        openItems: ["How long email addresses from the early access form are kept."],
+      };
+  }
 }
 
 export const terms: LegalDocument = {
-  eyebrow: "Legal",
   title: "Terms of use",
-  lede: `The terms for using the ${name} Telegram bot and this website during public beta.`,
+  lede: `The terms for using the ${name} Telegram bot and this website.`,
   sections: [
     section(
       "about",
@@ -110,10 +135,10 @@ export const terms: LegalDocument = {
           It is not a financial adviser, a broker or an exchange.
         </p>
         <p>
-          {name} is in public beta. {site.beta.notice} Each feature on this site carries a status label, and a feature
-          that is not marked as available may not work.
+          {name} is not open to everyone yet. {site.stage.notice} Each feature on this site carries a status label, and
+          a feature that is not marked as in early access may not work.
         </p>
-        <p>This website is for information. {access.paymentNote}</p>
+        <p>This website is for information. {legal.websiteNote}</p>
       </>,
     ),
     section(
@@ -126,16 +151,9 @@ export const terms: LegalDocument = {
     ),
     section(
       "fees",
-      "Access fee and trading costs",
+      "Fees",
       <>
-        <p>
-          Access costs <strong>{access.priceLabel}</strong>. It is a {access.descriptor.toLowerCase()}, paid inside the
-          Telegram bot.
-        </p>
-        <p>
-          {access.disclosure} {speedFees.pendingVerification ? speedFees.pendingCopy : speedFees.publishedNote}
-        </p>
-        <p>Fees can change during public beta.</p>
+        <p>{FEES}</p>
         <p>{refundStatement}</p>
       </>,
     ),
@@ -203,42 +221,44 @@ export const terms: LegalDocument = {
           or that a check, an alert or an order will work as intended.
         </p>
         <p>
-          Because this is a beta, features, limits and fees can change, and the bot can be paused or withdrawn. These
-          terms can change too. The current version is the one on this page.
+          Features, limits and fees can change, and the bot can be paused or withdrawn. These terms can change too. The
+          current version is the one on this page.
         </p>
       </>,
     ),
     ...contact("Questions about these terms:"),
     ...openItems(
-      openLegalItems(["Governing law and how disputes are handled.", ...refundOpenItem, ...locationsOpenItem]),
+      openLegalItems(["Governing law and how disputes are handled.", "Fees.", ...refundOpenItem, ...locationsOpenItem]),
     ),
   ],
 };
 
+const signup = earlyAccessPrivacy();
+
 export const privacy: LegalDocument = {
-  eyebrow: "Legal",
   title: "Privacy policy",
-  lede: `What the ${name} bot and this website store, and what they do not.`,
+  lede: `What this website and the ${name} bot store, and what they do not.`,
   sections: [
     section("scope", "What this covers", scope(`This policy covers the ${name} Telegram bot (${handle}) and this website.`, "In it")),
+    section(
+      "early-access",
+      "Early access sign-up",
+      <>
+        {signup.paragraphs.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </>,
+    ),
     section(
       "website",
       "This website",
       <>
-        <p>
-          This site has no accounts, no forms, no wallet connection and no payments. It does not ask you for personal
-          information.
-        </p>
-        <p>
-          If you open the site with a referral code in the link, the code is kept in your browser’s session storage so
-          that the Telegram buttons can carry it. It stays in that tab and is cleared when the tab closes.
-        </p>
+        <p>This site has no accounts, no wallet connection and no payments.</p>
         <p>{analyticsStatement} Fonts and images are served from this site, not from other companies.</p>
         <p>
           Like any website, the company that hosts this one processes standard request data, such as your IP address
           and browser type, in order to deliver pages.
         </p>
-        <p>The Telegram buttons open Telegram. From there, Telegram’s own privacy policy applies.</p>
       </>,
     ),
     section(
@@ -293,12 +313,13 @@ export const privacy: LegalDocument = {
         </p>
       ),
     ),
-    ...openItems(openLegalItems(["How long data is kept.", "Where data is stored and processed."])),
+    ...openItems(
+      openLegalItems([...signup.openItems, "How long data is kept.", "Where data is stored and processed."]),
+    ),
   ],
 };
 
 export const risk: LegalDocument = {
-  eyebrow: "Legal",
   title: "Risk disclosure",
   lede: `Read this before you trade. It applies to everything ${name} does.`,
   sections: [
@@ -351,9 +372,9 @@ export const risk: LegalDocument = {
       </>,
     ),
     section(
-      "beta",
-      "Beta software",
-      <p>{site.beta.notice} Software in beta can have errors, including errors that cost money.</p>,
+      "early-software",
+      "Early software",
+      <p>{site.stage.notice} Early software can have errors, including errors that cost money.</p>,
     ),
     section(
       "keys",
@@ -367,9 +388,7 @@ export const risk: LegalDocument = {
       "fees",
       "Fees",
       <>
-        <p>
-          The {access.descriptor.toLowerCase()} is {access.priceLabel}. {access.disclosure}
-        </p>
+        <p>{FEES}</p>
         <p>{refundStatement}</p>
       </>,
     ),
@@ -389,6 +408,6 @@ export const risk: LegalDocument = {
         Meteora or DexScreener, or by any account whose posts it reads.
       </p>,
     ),
-    ...openItems(openLegalItems([...refundOpenItem, ...locationsOpenItem])),
+    ...openItems(openLegalItems(["Fees.", ...refundOpenItem, ...locationsOpenItem])),
   ],
 };
