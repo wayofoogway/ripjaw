@@ -95,6 +95,16 @@ async function visit(page: Page, path: string): Promise<number> {
   return response.status();
 }
 
+/** Waits until smooth scrolling has stopped: three equal readings 250 ms apart. */
+async function settle(page: Page): Promise<void> {
+  for (let last = -1, quiet = 0; quiet < 3; ) {
+    await page.waitForTimeout(250);
+    const now = await page.evaluate(() => window.scrollY);
+    quiet = now === last ? quiet + 1 : 0;
+    last = now;
+  }
+}
+
 async function scrollThrough(page: Page): Promise<void> {
   const total = await page.evaluate(() => document.documentElement.scrollHeight);
   const step = Math.round(page.viewportSize()!.height * 0.7);
@@ -339,10 +349,13 @@ async function checkKeyboard(browser: Browser, unbuilt: string[]): Promise<void>
         check(`${path}: has topic links`, total >= 4, `found ${total}`);
         for (let i = 0; i < total; i += 1) {
           const href = await topics.nth(i).getAttribute("href");
+          /* The arrow keys above and the previous topic link start smooth scrolls. One still running would compete with this link's own scroll, so each must finish first. */
+          await settle(page);
           await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
           await topics.nth(i).focus();
+          await settle(page);
           await page.keyboard.press("Enter");
-          await page.waitForTimeout(1200);
+          await settle(page);
           const top = await page.evaluate((hash) => {
             const target = document.getElementById(hash.slice(1));
             return target ? target.getBoundingClientRect().top : null;
