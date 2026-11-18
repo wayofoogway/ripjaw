@@ -2,8 +2,11 @@
  * Guards the static export in `out/`. Runs after `next build` and fails the
  * build when the output breaks one of the site's publishing rules:
  *
- *  - wording the site no longer uses, a price, or a bracketed placeholder;
- *  - a real person's handle or a test bot in any shipped file;
+ *  - wording the site no longer uses, a price, or a bracketed placeholder, in
+ *    the page text or in its structured data;
+ *  - structured data other than the home page's SoftwareApplication and the
+ *    FAQ's FAQPage, or structured data with an offer, a price or a rating;
+ *  - an @handle or an X link that is not one of the site's own, or a test bot;
  *  - any link into Telegram;
  *  - a page that is not a configured route, or a configured route with no page;
  *  - early access markup that does not match `earlyAccess.state` in the site
@@ -43,7 +46,19 @@ const BANNED_PATTERNS: { pattern: RegExp; what: string }[] = [
   { pattern: /(?<![\w.])\d+(?:\.\d+)?\s*SOL\b/, what: "an amount in SOL" },
 ];
 /** Never allowed in any shipped file, scripts included. */
-const BANNED_ANYWHERE = ["elonmusk", "ripjawtestbot"];
+const BANNED_ANYWHERE = ["ripjawtestbot"];
+/**
+ * The only @handles a page may show: the site's own, and the stand-in the docs
+ * use in command examples. Anyone else's handle fails the build, so a real
+ * person's account cannot ship in copy or sample data.
+ */
+const ALLOWED_HANDLES = new Set([site.links.xHandle, site.links.telegramBotHandle, "@handle"].map((handle) => handle.toLowerCase()));
+const HANDLE = /(?<![\w.@/])@[A-Za-z0-9_]{2,}/g;
+/** Links to X in any shipped file must be the site's own account. */
+const X_LINK = /https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]+/gi;
+/** Structured data each page may carry. No page publishes a price, an offer, a rating or a review. */
+const STRUCTURED_DATA: Record<string, string[]> = { "index.html": ["SoftwareApplication"], "faq/index.html": ["FAQPage"] };
+const BANNED_STRUCTURED_KEYS = new Set(["offers", "price", "priceCurrency", "priceSpecification", "aggregateRating", "review", "reviewRating"]);
 const TELEGRAM_LINK = /(?:https?:)?\/\/(?:www\.)?(?:t\.me|telegram\.me|telegram\.dog)\/|tg:\/\//i;
 const PLACEHOLDER = /\[[A-Z][A-Za-z0-9 ,.'’/&:-]{2,80}\]/g;
 const TEXT_EXTENSIONS = [".html", ".txt", ".js", ".css", ".xml", ".json", ".webmanifest", ".svg"];
@@ -72,6 +87,31 @@ function readableText(html: string): string {
     .replace(/\s+/g, " ");
 }
 
+/** Every JSON-LD block of a page, parsed. */
+function structuredData(html: string, name: string): Record<string, unknown>[] {
+  return [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].flatMap(([, json]) => {
+    try {
+      return [JSON.parse(json ?? "") as Record<string, unknown>];
+    } catch {
+      problems.push(`${name}: structured data is not valid JSON`);
+      return [];
+    }
+  });
+}
+
+/** Every key and every string value in a parsed JSON-LD block. */
+function keysAndStrings(value: unknown, keys: string[] = [], strings: string[] = []): { keys: string[]; strings: string[] } {
+  if (typeof value === "string") strings.push(value);
+  else if (Array.isArray(value)) for (const item of value) keysAndStrings(item, keys, strings);
+  else if (value !== null && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      keys.push(key);
+      keysAndStrings(item, keys, strings);
+    }
+  }
+  return { keys, strings };
+}
+
 function resolvesToFile(urlPath: string): boolean {
   const clean = decodeURIComponent(urlPath.split("#")[0]!.split("?")[0]!);
   if (clean === "") return true;
@@ -82,6 +122,10 @@ function resolvesToFile(urlPath: string): boolean {
 
 const files = walk(out);
 const problems: string[] = [];
+
+function equalLists(what: string, actual: string[], expected: string[]): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) problems.push(`${what} is [${actual.join(", ")}], expected [${expected.join(", ")}]`);
+}
 const shippedText = new Map<string, string>();
 
 for (const file of files) {
@@ -96,10 +140,24 @@ for (const file of files) {
     if (lower.includes(term)) problems.push(`${name}: contains "${term}"`);
   }
   if (TELEGRAM_LINK.test(content)) problems.push(`${name}: contains a link into Telegram`);
+  for (const [link] of content.matchAll(X_LINK)) {
+    if (link.replace("www.", "").toLowerCase() !== site.links.x.toLowerCase()) problems.push(`${name}: links to an X account that is not the site's own (${link})`);
+  }
 
   if (extension !== ".html") continue;
-  const text = readableText(content);
+  const data = structuredData(content, name);
+  const found = keysAndStrings(data);
+  equalLists(`${name}: structured data`, data.map((entry) => String(entry["@type"])), STRUCTURED_DATA[name] ?? []);
+  for (const key of found.keys) {
+    if (BANNED_STRUCTURED_KEYS.has(key)) problems.push(`${name}: structured data has "${key}", and the site publishes no price, offer, rating or review`);
+  }
+  /* Structured data is read by crawlers, so it follows the same wording rules as the page. */
+  const text = [readableText(content), ...found.strings].join(" ");
   const textLower = text.toLowerCase();
+
+  for (const [handle] of text.matchAll(HANDLE)) {
+    if (!ALLOWED_HANDLES.has(handle.toLowerCase())) problems.push(`${name}: shows the handle ${handle}, which is not one of the site's own`);
+  }
 
   for (const phrase of BANNED_PHRASES) {
     if (textLower.includes(phrase)) problems.push(`${name}: contains banned wording "${phrase}"`);

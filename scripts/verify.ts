@@ -4,6 +4,11 @@
  *
  *   npm run verify -- --chrome <path to Chrome>
  *
+ * Beyond the layout, content, keyboard and form checks it runs axe-core on
+ * every page, reflows each page at 320px, at 200% text and with WCAG text
+ * spacing, loads the pages in forced colours, on paper and with the React
+ * bundle blocked.
+ *
  * The suite starts its own static server for `out/`, tests the early access
  * state set in the site config, then builds the other state in a temporary
  * copy of the project and tests that too. Both the on-hold line and the open
@@ -60,6 +65,12 @@ const MISSING_PATH = "/no-such-page/";
 const NOT_FOUND_TITLE = "Page not found";
 const RETIRED_WORDING = /\bbeta\b|pricing|got rugged|try ripjaw|(?<![\w.])\d+(?:\.\d+)?\s*SOL\b/i;
 const TEST_DESTINATION = "https://early-access.invalid/signup";
+/** WCAG 2.2 A and AA, plus axe's best practices (landmarks, heading order). */
+const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"];
+const axeSource = readFileSync(join(root, "node_modules/axe-core/axe.min.js"), "utf8");
+/** WCAG 1.4.12: text must survive these spacings without being cut off. */
+const TEXT_SPACING = "*{line-height:1.5 !important;letter-spacing:0.12em !important;word-spacing:0.16em !important} p{margin-bottom:2em !important}";
+const DOUBLE_TEXT = "html{font-size:200% !important}";
 
 /* ───────────────────────────── Results ───────────────────────────── */
 
@@ -105,10 +116,13 @@ function pageFacts() {
     title: document.title,
     description: meta('meta[name="description"]'),
     canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? null,
-    robots: meta('meta[name="robots"]'),
+    robots: [...document.querySelectorAll('meta[name="robots"]')].map((el) => el.getAttribute("content")),
     ogImage: meta('meta[property="og:image"]'),
     lang: document.documentElement.lang,
-    banners: document.querySelectorAll('body > header, [role="banner"]').length,
+    /** The page header, with everything a visitor could use inside it. */
+    banners: [...document.querySelectorAll('body > header, [role="banner"]')].map((el) =>
+      [...el.querySelectorAll("a, button, input, select, nav")].map((control) => control.getAttribute("aria-label") ?? text(control)),
+    ),
     navs: [...document.querySelectorAll("nav")].map((nav) => ({
       label: nav.getAttribute("aria-label"),
       inFooter: nav.closest("footer") !== null,
@@ -119,7 +133,7 @@ function pageFacts() {
           .map((el) => el.getAttribute("aria-label") ?? text(el))
       : [],
     logo: (() => {
-      const link = document.querySelector('body > div a[href="/"]');
+      const link = document.querySelector('body > header a[href="/"]');
       if (!link) return null;
       const r = link.getBoundingClientRect();
       return { top: r.top + window.scrollY, height: r.height, name: link.getAttribute("aria-label") };
@@ -425,8 +439,23 @@ function watch(page: Page, base: string, expected: (url: string) => boolean): Wa
 
 async function settle(page: Page): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
-  /* The first fade turning "in" shows that the page has hydrated. */
   await page.waitForFunction(() => document.querySelector('[data-fade="in"]') !== null);
+  /* The fades run from the head script, so they no longer show that React is ready.
+     React marks each element it takes over, in page order: the footer's last link is the last one. */
+  await page.waitForFunction(() => {
+    const last = [...document.querySelectorAll("footer a")].at(-1);
+    return last !== undefined && Object.keys(last).some((key) => key.startsWith("__reactProps$"));
+  });
+}
+
+/** Rule ids of the accessibility problems axe-core finds on the page as it stands. */
+async function axeProblems(page: Page): Promise<string[]> {
+  await page.evaluate(axeSource);
+  return page.evaluate(async (tags) => {
+    const axe = (window as unknown as { axe: { run: (root: Document, options: object) => Promise<{ violations: { id: string; help: string; nodes: { html: string }[] }[] }> } }).axe;
+    const result = await axe.run(document, { runOnly: { type: "tag", values: tags } });
+    return result.violations.map((violation) => `${violation.id}: ${violation.help} (${violation.nodes.length}, first ${(violation.nodes[0]?.html ?? "").slice(0, 120)})`);
+  }, AXE_TAGS);
 }
 
 /** Waits until every fade that has started has finished, so colours can be measured at rest. */
@@ -497,7 +526,7 @@ async function checkPage(context: BrowserContext, base: string, mode: Mode, path
     check(`${label}: the h1 is visible and has text`, facts.h1.every((h1) => h1.visible && h1.text !== ""));
     equal(`${label}: one main`, facts.mains, 1);
     equal(`${label}: lang`, facts.lang, "en");
-    equal(`${label}: no header bar`, facts.banners, 0);
+    equal(`${label}: the header holds the logo and nothing else`, facts.banners, [[`${site.name} home`]]);
     check(
       `${label}: the only navigation is the footer and a page's own contents list`,
       facts.navs.every((nav) => (nav.label === "Pages" && nav.inFooter) || nav.label === "On this page"),
@@ -567,8 +596,9 @@ async function checkPage(context: BrowserContext, base: string, mode: Mode, path
       check(`${label}: social image`, facts.ogImage !== null && facts.ogImage.endsWith(site.seo.ogImage.path), String(facts.ogImage));
     } else {
       equal(`${label}: 404 headline`, facts.h1[0]?.text, NOT_FOUND_TITLE);
-      check(`${label}: 404 is not indexed`, facts.robots !== null && facts.robots.includes("noindex"), String(facts.robots));
+      equal(`${label}: 404 is not indexed, said once`, facts.robots, ["noindex"]);
     }
+    if (route) equal(`${label}: pages carry no robots tag`, facts.robots, []);
     equal(`${label}: no console errors, failed requests or outside requests`, watcher.problems, []);
   } finally {
     await page.close();
@@ -681,6 +711,9 @@ async function checkContent(browser: Browser, base: string): Promise<void> {
     );
     const robots = await (await context.request.get(`${base}/robots.txt`)).text();
     check("robots.txt: points at the sitemap", robots.includes(`${site.url}/sitemap.xml`), robots);
+    equal("robots.txt: allows everything, with standard lines only", robots.split("\n").map((line) => line.trim()).filter((line) => line !== ""), ["User-Agent: *", "Allow: /", `Sitemap: ${site.url}/sitemap.xml`]);
+    const social = await page.evaluate(() => Object.fromEntries(["og:type", "og:locale", "og:site_name", "twitter:card", "twitter:site"].map((name) => [name, document.querySelector(`meta[property="${name}"], meta[name="${name}"]`)?.getAttribute("content") ?? null])));
+    equal("social card: type, language, site name and X account", social, { "og:type": "website", "og:locale": "en_US", "og:site_name": site.name, "twitter:card": "summary_large_image", "twitter:site": site.links.xHandle });
 
     /* A referral link does nothing while there is no form to use it. */
     if (state === "on_hold") {
@@ -707,6 +740,188 @@ async function checkContent(browser: Browser, base: string): Promise<void> {
     }
   } finally {
     await noScript.close();
+  }
+}
+
+/* ─────────────── The fades do not depend on the React bundle ─────────────── */
+
+async function checkFades(browser: Browser, base: string): Promise<void> {
+  /* A visitor whose script bundle fails to load still sees every section fade in. */
+  const blocked = await newContext(browser, { width: 1440, reduced: false }, false);
+  await blocked.route("**/_next/static/chunks/**", (route) => route.abort("failed"));
+  try {
+    const page = await blocked.newPage();
+    for (const route of site.routes) {
+      const at = `${route.path} without the React bundle`;
+      await page.goto(`${base}${route.path}`, { waitUntil: "load" });
+      const started = await page.waitForFunction(() => document.querySelector('[data-fade="in"]') !== null, null, { timeout: 5000 }).then(() => true, () => false);
+      check(`${at}: the top of the page fades in`, started);
+      await scrollThrough(page);
+      const allIn = await page
+        .waitForFunction(() => [...document.querySelectorAll("[data-fade]")].every((el) => el.getAttribute("data-fade") === "in" && getComputedStyle(el).opacity === "1"), null, { timeout: 5000 })
+        .then(() => true, () => false);
+      check(`${at}: every section ends fully visible`, allIn, JSON.stringify(await page.evaluate(fadeFacts)));
+      const reactRan = await page.evaluate(() => [...document.querySelectorAll("footer a")].some((link) => Object.keys(link).some((key) => key.startsWith("__react"))));
+      check(`${at}: the bundle really was blocked`, !reactRan);
+    }
+  } finally {
+    await blocked.close();
+  }
+
+  /* On paper nothing has scrolled into view, so nothing may be waiting to fade in. */
+  const paper = await newContext(browser, { width: 1440, reduced: false }, false);
+  try {
+    const page = await paper.newPage();
+    await page.emulateMedia({ media: "print" });
+    for (const route of site.routes) {
+      await page.goto(`${base}${route.path}`, { waitUntil: "load" });
+      const fades = await page.evaluate(fadeFacts);
+      check(`${route.path} printed: every section is visible`, fades.length > 0 && fades.every((fade) => fade.opacity === "1"), JSON.stringify(fades));
+    }
+  } finally {
+    await paper.close();
+  }
+}
+
+/* ──────────────────────────── Accessibility ──────────────────────────── */
+
+/** Content wider than the viewport, or cut off by the element that holds it. */
+function reflowFacts() {
+  const width = document.documentElement.clientWidth;
+  const problems: string[] = [];
+  if (document.documentElement.scrollWidth > width) problems.push(`document is ${document.documentElement.scrollWidth}px wide in a ${width}px viewport`);
+  for (const el of document.body.querySelectorAll("*")) {
+    const cs = getComputedStyle(el);
+    if (cs.display === "none") continue;
+    const r = el.getBoundingClientRect();
+    /* Elements parked entirely off the left edge (the skip link, the honeypot) cannot cause scrolling. */
+    if (r.width <= 1 || r.height <= 1 || r.right <= 0) continue;
+    const name = `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 40)}"`;
+    if (r.right > width + 1 || r.left < -1) problems.push(`${name} spans ${Math.round(r.left)}..${Math.round(r.right)}px in a ${width}px viewport`);
+    const clips = cs.overflowX !== "visible" || cs.overflowY !== "visible";
+    if (clips && el !== document.body && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)) {
+      problems.push(`${name} cuts off its content (${el.scrollWidth}x${el.scrollHeight} in ${el.clientWidth}x${el.clientHeight})`);
+    }
+  }
+  return problems.slice(0, 5);
+}
+
+/** Text that forced colours (Windows high contrast) would leave invisible. */
+function forcedColourFacts() {
+  const problems: string[] = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const el = walker.currentNode.parentElement;
+    const text = (walker.currentNode.textContent ?? "").trim();
+    if (text === "" || !el || el.closest("script, style, noscript")) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 1 || r.height <= 1 || r.right <= 0) continue;
+    const cs = getComputedStyle(el);
+    if (cs.color === "transparent" || /rgba\([^)]*,\s*0\)$/.test(cs.color)) problems.push(`"${text.slice(0, 30)}" has no colour`);
+    else if (cs.color === cs.backgroundColor) problems.push(`"${text.slice(0, 30)}" is ${cs.color} on the same colour`);
+  }
+  return problems;
+}
+
+async function checkAccessibility(browser: Browser, base: string): Promise<void> {
+  const paths = [...site.routes.map((route) => route.path), MISSING_PATH];
+  const load = async (page: Page, path: string, css?: string) => {
+    await page.goto(`${base}${path}`, { waitUntil: "load" });
+    if (css) await page.addStyleTag({ content: css });
+    await settle(page);
+    await scrollThrough(page);
+    check(`${path}: fades finish`, await fadesFinished(page));
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  };
+
+  /* axe-core on every page, on a phone and on a desktop, and on the states a visitor can put a page in. */
+  for (const width of [390, 1440]) {
+    const context = await newContext(browser, { width, reduced: false }, false);
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    try {
+      const page = await context.newPage();
+      for (const path of paths) {
+        await load(page, path);
+        equal(`${path} at ${width}px: axe-core finds nothing`, await axeProblems(page), []);
+      }
+      await load(page, "/faq/");
+      const closed = page.locator('main button[aria-expanded="false"]');
+      while ((await closed.count()) > 0) await closed.first().click();
+      equal(`/faq/ with every answer open at ${width}px: axe-core finds nothing`, await axeProblems(page), []);
+      equal(`/faq/ with every answer open at ${width}px: nothing overflows`, await page.evaluate(reflowFacts), []);
+      await load(page, "/docs/");
+      await page.locator("main button[data-copy-state]").first().click();
+      await page.waitForSelector('main button[data-copy-state="done"]');
+      equal(`/docs/ after copying at ${width}px: axe-core finds nothing`, await axeProblems(page), []);
+    } finally {
+      await context.close();
+    }
+  }
+
+  /* Reflow (WCAG 1.4.10), resized text (1.4.4) and text spacing (1.4.12): nothing overflows or is cut off. */
+  const reflows: { name: string; width: number; height: number; css?: string }[] = [
+    { name: "at 320px", width: 320, height: 568 },
+    { name: "with text at 200%", width: 1280, height: 900, css: DOUBLE_TEXT },
+    { name: "with text at 200% on a phone", width: 390, height: 844, css: DOUBLE_TEXT },
+    { name: "with wide text spacing on a phone", width: 390, height: 844, css: TEXT_SPACING },
+    { name: "with wide text spacing", width: 1440, height: 900, css: TEXT_SPACING },
+  ];
+  for (const reflow of reflows) {
+    const context = await browser.newContext({ viewport: { width: reflow.width, height: reflow.height }, isMobile: reflow.width < 600, hasTouch: reflow.width < 600 });
+    try {
+      const page = await context.newPage();
+      for (const path of paths) {
+        await load(page, path, reflow.css);
+        equal(`${path} ${reflow.name}: nothing overflows or is cut off`, await page.evaluate(reflowFacts), []);
+      }
+    } finally {
+      await context.close();
+    }
+  }
+
+  /* Forced colours: every word stays visible and the focus ring still shows. */
+  const forced = await browser.newContext({ viewport: { width: 1280, height: 900 }, forcedColors: "active" });
+  try {
+    const page = await forced.newPage();
+    for (const path of paths) {
+      await load(page, path);
+      equal(`${path} in forced colours: every word is visible`, await page.evaluate(forcedColourFacts), []);
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Tab");
+      const ring = await page.evaluate(focusFacts);
+      check(`${path} in forced colours: the focus ring shows`, ring !== null && ring.outlineStyle !== "none" && ring.outlineWidth >= 2, JSON.stringify(ring));
+    }
+  } finally {
+    await forced.close();
+  }
+
+  /* Reduced motion: nothing animates on load or after using a control. */
+  const still = await newContext(browser, { width: 1440, reduced: true }, false);
+  await still.grantPermissions(["clipboard-read", "clipboard-write"]);
+  try {
+    const page = await still.newPage();
+    const running = () => page.evaluate(() => document.getAnimations().length);
+    for (const path of paths) {
+      await page.goto(`${base}${path}`, { waitUntil: "load" });
+      equal(`${path} with reduced motion: nothing animates on load`, await running(), 0);
+      await settle(page);
+      await page.locator("footer a").first().hover();
+      equal(`${path} with reduced motion: nothing animates on hover`, await running(), 0);
+    }
+    await page.goto(`${base}/faq/`, { waitUntil: "load" });
+    await settle(page);
+    await page.locator("main button[aria-controls]").nth(2).click();
+    equal("/faq/ with reduced motion: opening an answer animates nothing", await running(), 0);
+    await page.goto(`${base}/docs/`, { waitUntil: "load" });
+    await settle(page);
+    await page.locator("main button[data-copy-state]").first().click();
+    await page.waitForSelector('main button[data-copy-state="done"]');
+    equal("/docs/ with reduced motion: copying animates nothing", await running(), 0);
+    await page.locator('nav[aria-label="On this page"] a').nth(3).click();
+    const [first, later] = [await page.evaluate(() => window.scrollY), await page.waitForTimeout(80).then(() => page.evaluate(() => window.scrollY))];
+    check("/docs/ with reduced motion: a contents link jumps, it does not glide", first > 0 && first === later, `${first} then ${later}`);
+  } finally {
+    await still.close();
   }
 }
 
@@ -1070,6 +1285,7 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
       equal(`${at}: the error is tied to the field and the field takes focus`, wiring, { invalid: "true", describedByTheError: true, focused: true });
       check(`${at}: fades finish`, await fadesFinished(s.page));
       equal(`${at}: an error passes contrast`, (await s.page.evaluate(contrastFacts)).failures, []);
+      equal(`${at}: with an error shown, axe-core finds nothing`, await axeProblems(s.page), []);
       for (const bad of ["plainaddress", "name@", "@example.com", "name@example", "na me@example.com"]) {
         await s.email.fill(bad);
         await s.email.press("Enter");
@@ -1101,6 +1317,8 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
       await s.done.waitFor();
       equal(`${at}: success message after a successful answer`, squash(await s.done.innerText()), signupCopy.success);
       equal(`${at}: the success message is announced and focused`, await s.done.evaluate((node) => [node.getAttribute("role"), document.activeElement === node]), ["status", true]);
+      check(`${at}: fades finish`, await fadesFinished(s.page));
+      equal(`${at}: after signing up, axe-core finds nothing`, await axeProblems(s.page), []);
       equal(`${at}: the request is a form-encoded POST with the email only`, [s.posts[0]?.method, s.posts[0]?.contentType.split(";")[0], s.posts[0]?.fields], ["POST", "application/x-www-form-urlencoded", { email: sample }]);
       equal(`${at}: the other form on the page is untouched`, await s.page.locator('form[data-signup="idle"]').count(), 1);
       equal(`${at}: a successful sign-up causes no console errors`, s.watcher.problems, []);
@@ -1246,6 +1464,8 @@ try {
   const base = server.url;
   await checkAllPages(browser, base);
   await group("content", () => checkContent(browser, base));
+  await group("fades", () => checkFades(browser, base));
+  await group("accessibility", () => checkAccessibility(browser, base));
   for (const width of WIDTHS) await group(`home layout at ${width}px`, () => checkHomeLayout(browser, base, width));
   for (const width of [1440, 390]) await group(`keyboard at ${width}px`, () => checkKeyboard(browser, base, width));
   if (destination !== null) {

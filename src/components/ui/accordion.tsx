@@ -18,7 +18,8 @@ type AccordionProps = {
 /**
  * Disclosure list between thin dividers. Several items can be open at once.
  * Each trigger is a real button with `aria-expanded`; Up, Down, Home and End
- * move between triggers. Closed answers stay in the HTML.
+ * move between triggers. Closed answers stay in the HTML. The answers are not
+ * regions: a long list of them would bury the page's real landmarks.
  */
 export function Accordion({ items, defaultOpen = [] }: AccordionProps) {
   const baseId = useId();
@@ -54,7 +55,6 @@ export function Accordion({ items, defaultOpen = [] }: AccordionProps) {
     <div className="divide-y divide-rj-line border-y border-rj-line">
       {items.map((item, index) => {
         const isOpen = open.has(item.id);
-        const triggerId = `${baseId}-trigger-${item.id}`;
         const panelId = `${baseId}-panel-${item.id}`;
         const Glyph = isOpen ? Minus : Plus;
         return (
@@ -64,7 +64,6 @@ export function Accordion({ items, defaultOpen = [] }: AccordionProps) {
                 ref={(node) => {
                   triggers.current[index] = node;
                 }}
-                id={triggerId}
                 type="button"
                 aria-expanded={isOpen}
                 aria-controls={panelId}
@@ -76,7 +75,7 @@ export function Accordion({ items, defaultOpen = [] }: AccordionProps) {
                 <Glyph aria-hidden="true" className="size-4 shrink-0 text-rj-caption" strokeWidth={2} />
               </button>
             </h2>
-            <div id={panelId} role="region" aria-labelledby={triggerId} hidden={!isOpen}>
+            <div id={panelId} hidden={!isOpen}>
               <div className="max-w-[60ch] pb-6 text-base leading-relaxed text-rj-dim [&_p+p]:mt-2">
                 {item.content}
               </div>

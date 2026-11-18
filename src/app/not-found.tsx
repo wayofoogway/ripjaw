@@ -12,7 +12,6 @@ const copy = {
 export const metadata: Metadata = {
   title: { absolute: `Page not found — ${site.seo.titleSuffix}` },
   description: "This page does not exist. Head back to the Ripjaw home page.",
-  robots: { index: false, follow: true },
 };
 
 export default function NotFound() {

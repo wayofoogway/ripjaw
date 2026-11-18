@@ -11,7 +11,7 @@ type StatusLabelProps = {
 /** A feature's status as plain small text. */
 export function StatusLabel({ status, label, className }: StatusLabelProps) {
   return (
-    <span data-status={status} className={cn("text-label whitespace-nowrap text-rj-caption", className)}>
+    <span data-status={status} className={cn("text-label text-rj-caption", className)}>
       {label}
     </span>
   );

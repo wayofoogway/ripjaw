@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Lockup } from "@/components/layout/lockup";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { site } from "@/config/site";
+import { fadeScript } from "@/lib/fade-script";
 import "./globals.css";
 
 /* Fonts are self-hosted from pinned npm packages, so a build never depends on a font service. */
@@ -52,12 +53,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
-      // The head script below adds `data-js` before React hydrates.
+      // The head script adds `data-js` before React hydrates.
       suppressHydrationWarning
     >
       <head>
-        {/* Marks that script runs. Fades start transparent only when it does, so content is never hidden without script. */}
-        <script dangerouslySetInnerHTML={{ __html: 'document.documentElement.dataset.js=""' }} />
+        {/* Runs the fades without waiting for React. Content is never hidden when script does not run. */}
+        <script dangerouslySetInnerHTML={{ __html: fadeScript }} />
       </head>
       <body>
         <a
@@ -67,11 +68,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         {/* No navigation bar: a small logo, and the page links live in the footer. */}
-        <div className="container-rj pt-8">
+        <header className="container-rj pt-8">
           <Link href="/" aria-label={`${site.name} home`} className="inline-flex h-11 items-center">
             <Lockup className="h-7 w-auto" />
           </Link>
-        </div>
+        </header>
         <main id="main">{children}</main>
         <SiteFooter />
       </body>

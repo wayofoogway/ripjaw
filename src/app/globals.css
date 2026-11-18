@@ -218,9 +218,9 @@
    <Fade> content starts transparent and fades in once, when it enters the
    viewport. Opacity only: nothing moves, and nothing is tied to scroll
    position. It applies only when script runs (`data-js` is set in the
-   document head) and the visitor has not asked for reduced motion. In every
-   other case the content is simply visible. */
-@media (prefers-reduced-motion: no-preference) {
+   document head), on a screen, and when the visitor has not asked for reduced
+   motion. In every other case, print included, the content is simply visible. */
+@media screen and (prefers-reduced-motion: no-preference) {
   html[data-js] [data-fade] {
     opacity: 0;
     transition: opacity 600ms ease;

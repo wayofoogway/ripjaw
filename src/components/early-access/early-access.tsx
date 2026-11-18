@@ -27,11 +27,14 @@ function EarlyAccessBody() {
   );
 }
 
-/** Early access under the home headline. */
+/**
+ * Early access under the home headline. Not a named region: the page's closing
+ * early access section carries that name, and two regions must not share one.
+ */
 export function EarlyAccessIntro() {
   return (
-    <section aria-labelledby="early-access-intro-title" className="mt-10 border-t border-rj-line pt-8">
-      <h2 id="early-access-intro-title" className="text-label mb-3 text-rj-caption">
+    <section className="mt-10 border-t border-rj-line pt-8">
+      <h2 className="text-label mb-3 text-rj-caption">
         {site.earlyAccess.heading}
       </h2>
       <EarlyAccessBody />

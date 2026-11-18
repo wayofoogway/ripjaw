@@ -59,7 +59,8 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* The two closing sections share a row from `md` up, so neither leaves half the page empty. */}
+      {/* The two closing sections share a row from `md` up, so neither leaves half the page empty.
+          Stacked, the divider between them runs edge to edge: 24px is the side padding of `.container-rj`. */}
       <div className="border-t border-rj-line">
         <Fade className="container-rj grid md:grid-cols-2">
           <section id="platform" aria-labelledby="platform-title" className="py-14 md:pr-12 lg:py-20">
@@ -68,7 +69,7 @@ export default function HomePage() {
             </h2>
             <p className="mt-6 max-w-[30rem] text-lg text-rj-dim">{platform.line}</p>
           </section>
-          <EarlyAccessColumn className="border-t border-rj-line py-14 max-md:-mx-6 max-md:px-6 md:border-t-0 md:border-l md:pl-12 lg:py-20" />
+          <EarlyAccessColumn className="border-t border-rj-line py-14 max-md:-mx-[24px] max-md:px-[24px] md:border-t-0 md:border-l md:pl-12 lg:py-20" />
         </Fade>
       </div>
     </>

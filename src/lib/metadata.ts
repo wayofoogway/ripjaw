@@ -23,6 +23,7 @@ export function routeMetadata(path: string): Metadata {
     alternates: { canonical: url },
     openGraph: {
       type: "website",
+      locale: "en_US",
       siteName: site.name,
       url,
       title: route.title,
