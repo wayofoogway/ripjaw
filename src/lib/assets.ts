@@ -13,10 +13,14 @@ export type RasterAsset = {
   readonly height: number;
 };
 
-/** The two product screenshots: frameless crops of the Ripjaw chat in Telegram. */
+/**
+ * The product visuals: two frameless crops of the Ripjaw chat in Telegram,
+ * and the kit's phone mockup of the Safety Check for the home page.
+ */
 export const assets = {
   chatHomeMenu: { base: "/mockups/chat-home-menu", widths: [460, 920], width: 920, height: 1290 },
   chatSafetyCheck: { base: "/mockups/chat-safety-check", widths: [460, 920], width: 920, height: 1406 },
+  phoneSafetyCheck: { base: "/mockups/phone-safety-check", widths: [300, 600, 860], width: 860, height: 1800 },
 } as const satisfies Record<string, RasterAsset>;
 
 export type AssetKey = keyof typeof assets;

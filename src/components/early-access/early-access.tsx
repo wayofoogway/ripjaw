@@ -47,3 +47,17 @@ export function EarlyAccessSection() {
     </Section>
   );
 }
+
+/** Early access as one half of the home page's closing row. */
+export function EarlyAccessColumn({ className }: { className?: string }) {
+  return (
+    <section id="early-access" aria-labelledby="early-access-title" className={className}>
+      <h2 id="early-access-title" className="text-heading">
+        {site.earlyAccess.heading}
+      </h2>
+      <div className="mt-6">
+        <EarlyAccessBody />
+      </div>
+    </section>
+  );
+}

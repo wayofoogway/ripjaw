@@ -25,6 +25,7 @@ import {
   type EarlyAccessState,
 } from "../src/config/site.ts";
 import { signupCopy } from "../src/content/early-access.ts";
+import { assets } from "../src/lib/assets.ts";
 import { startServer } from "./serve.ts";
 
 const root = resolve(import.meta.dirname, "..");
@@ -604,7 +605,7 @@ async function checkContent(browser: Browser, base: string): Promise<void> {
     const home = await open("/");
     equal("home: headline is the tagline", home.h1[0]?.text.replace(/\s+/g, ""), site.tagline.replace(/\s+/g, ""));
     equal("home: section headings", home.h2, [site.earlyAccess.heading, "What it does", "A check, not a guarantee.", site.platform.headline, site.earlyAccess.heading]);
-    equal("home: one screenshot", home.images.filter((img) => img.inMain).length, 1);
+    equal("home: one product visual", home.images.filter((img) => img.inMain).length, 1);
     const radar = getFeature("meme-radar");
     equal("config: Meme Radar is in development", radar.status, "in_development");
     const radarLine = `${radar.title} is ${featureStatusMeta[radar.status].label.toLowerCase()}.`;
@@ -706,6 +707,113 @@ async function checkContent(browser: Browser, base: string): Promise<void> {
     }
   } finally {
     await noScript.close();
+  }
+}
+
+/* ───────────────────── Home: the visual and the balance ───────────────────── */
+
+function homeLayoutFacts() {
+  const box = (el: Element | null | undefined) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top + window.scrollY, bottom: r.bottom + window.scrollY, width: r.width, height: r.height };
+  };
+  /** The box of the words themselves, which can be narrower than the element that holds them. */
+  const ink = (el: Element | null | undefined) => {
+    if (!el) return null;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const r = range.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top + window.scrollY, bottom: r.bottom + window.scrollY, width: r.width, height: r.height };
+  };
+  /** The early access spot under the headline: its line and, when sign-up is open, the field and the button. */
+  const spot = (() => {
+    const el = document.querySelector("main [data-early-access]");
+    if (!el) return null;
+    const parts = el.matches("p") ? [el] : [el.querySelector("p"), el.querySelector('input[name="email"]'), el.querySelector('button[type="submit"]')];
+    const boxes = parts.map((part) => (part?.matches("p") ? ink(part) : box(part)));
+    if (boxes.some((b) => b === null)) return null;
+    const all = boxes as NonNullable<(typeof boxes)[number]>[];
+    return { left: Math.min(...all.map((b) => b.left)), right: Math.max(...all.map((b) => b.right)), top: Math.min(...all.map((b) => b.top)), bottom: Math.max(...all.map((b) => b.bottom)) };
+  })();
+  const figure = document.querySelector("main figure");
+  const img = figure?.querySelector("img") ?? null;
+  const container = document.querySelector("main .container-rj");
+  const style = container ? getComputedStyle(container) : null;
+  return {
+    screen: { width: document.documentElement.clientWidth, height: window.innerHeight },
+    /** The content column: the container without its side padding. */
+    column: container && style ? { left: container.getBoundingClientRect().left + parseFloat(style.paddingLeft), right: container.getBoundingClientRect().right - parseFloat(style.paddingRight) } : null,
+    headline: ink(document.querySelector("h1")),
+    lede: ink(document.querySelector("h1 + p")),
+    earlyAccessLine: spot,
+    figures: document.querySelectorAll("main figure").length,
+    variant: figure?.getAttribute("data-screenshot") ?? null,
+    image: box(img),
+    imageFile: img?.currentSrc ?? "",
+    imageRatio: img && img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : null,
+    caption: (figure?.querySelector("figcaption")?.textContent ?? "").trim(),
+    captionBox: ink(figure?.querySelector("figcaption")),
+    safetyColumns: [...document.querySelectorAll("#safety .grid .grid > *")].map((el) => box(el)),
+    platform: box(document.querySelector("#platform")),
+    platformHeading: ink(document.querySelector("#platform h2")),
+    closingEarlyAccess: box(document.querySelector("#early-access")),
+    closingEarlyAccessHeading: ink(document.querySelector("#early-access h2")),
+  };
+}
+
+/**
+ * The home page's one visual sits beside the headline and never crowds it out,
+ * and no section leaves the right half of a wide screen empty.
+ */
+async function checkHomeLayout(browser: Browser, base: string, width: number): Promise<void> {
+  const at = `home layout at ${width}px`;
+  const context = await newContext(browser, { width, reduced: false }, width < 600);
+  try {
+    const page = await context.newPage();
+    await page.goto(`${base}/`, { waitUntil: "load" });
+    await settle(page);
+    await page.waitForFunction(() => [...document.images].every((img) => img.complete));
+    const f = await page.evaluate(homeLayoutFacts);
+    const { headline, lede, earlyAccessLine, image, column, platform, closingEarlyAccess } = f;
+    if (!headline || !lede || !earlyAccessLine || !image || !column || !platform || !closingEarlyAccess || !f.captionBox || !f.platformHeading || !f.closingEarlyAccessHeading) {
+      check(`${at}: headline, early access line, visual and closing sections exist`, false, JSON.stringify(f));
+      return;
+    }
+    const middle = (column.left + column.right) / 2;
+
+    equal(`${at}: one visual, the kit's phone mockup`, [f.figures, f.variant], [1, "phone"]);
+    const phone = assets.phoneSafetyCheck;
+    check(`${at}: the visual is the Safety Check phone from the asset registry`, new URL(f.imageFile).pathname.startsWith(`${phone.base}-`), f.imageFile);
+    check(`${at}: the visual keeps its proportions`, Math.abs(image.height / image.width - phone.height / phone.width) < 0.01 && f.imageRatio !== null && Math.abs(f.imageRatio - phone.height / phone.width) < 0.01, `${image.width}x${image.height}`);
+    check(`${at}: the caption says it is sample data`, /sample data/i.test(f.caption), f.caption);
+    check(`${at}: the caption sits under the visual`, f.captionBox.top >= image.bottom && f.captionBox.left >= image.left - 1 && f.captionBox.right <= column.right + 1, JSON.stringify(f.captionBox));
+
+    check(`${at}: the headline is on the first screen`, headline.bottom <= f.screen.height, JSON.stringify(headline));
+    check(`${at}: the early access line${state === "open" ? " and form are" : " is"} on the first screen`, earlyAccessLine.bottom <= f.screen.height, JSON.stringify(earlyAccessLine));
+    check(`${at}: the visual fits inside the content column`, image.left >= column.left - 1 && image.right <= column.right + 1, JSON.stringify(image));
+
+    if (width < 768) {
+      check(`${at}: on a phone the visual comes after the early access line`, image.top >= earlyAccessLine.bottom, JSON.stringify(image));
+      check(`${at}: on a phone the visual starts on the first screen`, image.top < f.screen.height, JSON.stringify(image));
+      check(`${at}: on a phone the closing sections are stacked`, closingEarlyAccess.top >= platform.bottom - 1);
+    } else {
+      check(`${at}: the visual fills the right half beside the headline`, image.left >= middle && image.right >= column.right - 1 && image.top < headline.bottom && image.bottom > headline.top, JSON.stringify(image));
+      check(`${at}: the visual does not overlap the words`, Math.max(headline.right, lede.right, earlyAccessLine.right) < image.left, JSON.stringify({ headline, lede, image }));
+      check(`${at}: the visual is on the first screen`, image.top + image.height * 0.9 <= f.screen.height, JSON.stringify(image));
+      check(
+        `${at}: the safety lines share a row and reach into the right half`,
+        f.safetyColumns.length === 2 && f.safetyColumns.every((col) => col !== null) && f.safetyColumns[0]!.top === f.safetyColumns[1]!.top && f.safetyColumns[1]!.left >= middle - 1,
+        JSON.stringify(f.safetyColumns),
+      );
+      check(
+        `${at}: the closing sections share a row, early access on the right`,
+        Math.abs(platform.top - closingEarlyAccess.top) <= 1 && f.platformHeading.left <= column.left + 1 && f.closingEarlyAccessHeading.left >= middle,
+        JSON.stringify({ platform, closingEarlyAccess }),
+      );
+    }
+  } finally {
+    await context.close();
   }
 }
 
@@ -1138,6 +1246,7 @@ try {
   const base = server.url;
   await checkAllPages(browser, base);
   await group("content", () => checkContent(browser, base));
+  for (const width of WIDTHS) await group(`home layout at ${width}px`, () => checkHomeLayout(browser, base, width));
   for (const width of [1440, 390]) await group(`keyboard at ${width}px`, () => checkKeyboard(browser, base, width));
   if (destination !== null) {
     for (const width of [390, 1440]) await checkForm(browser, base, destination, width);

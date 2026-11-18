@@ -1,7 +1,6 @@
 import "server-only";
 import type { ResultMark } from "@/components/ui/result-mark";
 import { featureStatusMeta, getFeature } from "@/config/site";
-import { safety as homeSafety } from "@/content/home";
 
 /*
  * Copy for /safety/. Thresholds and scores the owner has not confirmed are
@@ -11,7 +10,10 @@ import { safety as homeSafety } from "@/content/home";
 export const intro = {
   title: "Safety Check",
   lede: "Ripjaw reads a token’s contract, liquidity and holders, then reports what it found. A check, not a guarantee.",
-  screenshot: homeSafety.screenshot,
+  screenshot: {
+    alt: "Ripjaw Safety Check report for the token BONK in Telegram: incomplete, 60 out of 100, 10 of 15 checks read, with mint and freeze revoked and several items unread.",
+    caption: "Safety Check in the Ripjaw bot. Sample data.",
+  },
 };
 
 export const checks = {

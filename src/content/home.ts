@@ -2,9 +2,9 @@ import "server-only";
 import { featureStatusMeta, getFeature, site } from "@/config/site";
 
 /*
- * Homepage copy: five short sections. Facts (statuses, the platform line,
- * early access) are read from the site config; this file holds the words
- * around them.
+ * Homepage copy: a headline beside one product visual, then four short
+ * sections. Facts (statuses, the platform line, early access) are read from
+ * the site config; this file holds the words around them.
  */
 
 const [lead, accent] = site.tagline.split(". ");
@@ -13,6 +13,11 @@ if (!lead || !accent) throw new Error('content/home: site.tagline must read "<le
 export const hero = {
   headline: { lead: `${lead}.`, accent },
   line: `${site.name} is a Solana trading bot inside Telegram. Trade, check token risk and manage your orders in one chat.`,
+  /** The page's one product visual: the kit's phone mockup of a Safety Check report. */
+  visual: {
+    alt: "A phone showing the Ripjaw bot in Telegram: a Safety Check report for the token BONK, marked incomplete, 60 out of 100, with 10 of 15 checks read, mint and freeze revoked and several items unread.",
+    caption: "Safety Check in the Ripjaw bot. Sample data.",
+  },
 };
 
 const radar = getFeature("meme-radar");
@@ -32,15 +37,9 @@ export const capabilities = {
 
 export const safety = {
   title: "A check, not a guarantee.",
-  lines: [
-    "Paste a token address and Ripjaw reports what it could read: each check marked passed, unknown or failed.",
-    "A pass is not a recommendation to buy.",
-  ],
+  line: "Paste a token address and Ripjaw reports what it could read: each check marked passed, unknown or failed.",
+  caveat: "A pass is not a recommendation to buy.",
   link: { label: "How the Safety Check works", href: "/safety/" },
-  screenshot: {
-    alt: "Ripjaw Safety Check report for the token BONK in Telegram: incomplete, 60 out of 100, 10 of 15 checks read, with mint and freeze revoked and several items unread.",
-    caption: "Safety Check in the Ripjaw bot. Sample data.",
-  },
 };
 
 export const platform = site.platform;

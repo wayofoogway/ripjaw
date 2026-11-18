@@ -6,9 +6,10 @@
  * The outputs are committed, so this only needs re-running when the kit, the
  * asset registry (`src/lib/assets.ts`) or the words on the social card change.
  *
- * The site uses two kit screenshots, cropped to the chat, plus the kit's
- * logo and favicons. The social card is rebuilt from the kit logo, palette
- * and type with the site's own wording, instead of copying the kit's card.
+ * The site uses two kit screenshots cropped to the chat and one kit phone
+ * mockup, plus the kit's logo and favicons. The social card is rebuilt from
+ * the kit logo, palette and type with the site's own wording, instead of
+ * copying the kit's card.
  */
 import { cpSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -28,12 +29,44 @@ if (!args.kit) throw new Error("Missing --kit <path to ripjaw-website-kit>");
 if (!args.chrome) throw new Error("Missing --chrome <path to a Chrome or Chromium binary>");
 const kit = resolve(args.kit);
 
-type Recipe = { file: string; extract?: { left: number; top: number; width: number; height: number } };
+type Recipe = {
+  file: string;
+  extract?: { left: number; top: number; width: number; height: number };
+  /**
+   * The kit's phone mockups sit in a soft purple glow. The site shows no
+   * glows, so everything that is not the solid device is made transparent.
+   */
+  removeGlow?: boolean;
+};
 
 const recipes: Record<AssetKey, Recipe> = {
   chatHomeMenu: { file: "mockups/png/01-home-menu.png", extract: { left: 0, top: 800, width: 920, height: 1290 } },
   chatSafetyCheck: { file: "mockups/png/05-safety-check.png" },
+  phoneSafetyCheck: {
+    file: "mockups/phone/05-safety-check-phone.png",
+    extract: { left: 250, top: 260, width: 860, height: 1800 },
+    removeGlow: true,
+  },
 };
+
+/** The glow never exceeds this opacity (out of 255); the device is fully opaque. */
+const GLOW_MAX_ALPHA = 80;
+
+/** Makes the glow transparent and keeps the device's anti-aliased edge. Fails if the result is not a clean cut-out. */
+async function withoutGlow(input: Buffer, name: string): Promise<Buffer> {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let solid = 0;
+  for (let i = 3; i < data.length; i += 4) {
+    const alpha = data[i]!;
+    data[i] = alpha <= GLOW_MAX_ALPHA ? 0 : Math.round(((alpha - GLOW_MAX_ALPHA) / (255 - GLOW_MAX_ALPHA)) * 255);
+    if (data[i] === 255) solid += 1;
+  }
+  const pixels = info.width * info.height;
+  if (solid < pixels * 0.9) throw new Error(`${name}: only ${Math.round((solid / pixels) * 100)}% of the crop is the device`);
+  const corner = data[3]!;
+  if (corner !== 0) throw new Error(`${name}: the corner outside the device is not transparent`);
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
+}
 
 async function writeVariants(asset: RasterAsset, input: Buffer): Promise<void> {
   const largest = asset.widths[asset.widths.length - 1];
@@ -119,7 +152,8 @@ for (const key of Object.keys(assets) as AssetKey[]) {
   const recipe = recipes[key];
   const asset = assets[key];
   const pipeline = sharp(join(kit, recipe.file));
-  const input = await (recipe.extract ? pipeline.extract(recipe.extract) : pipeline).png().toBuffer();
+  const cropped = await (recipe.extract ? pipeline.extract(recipe.extract) : pipeline).png().toBuffer();
+  const input = recipe.removeGlow ? await withoutGlow(cropped, asset.base) : cropped;
   await writeVariants(asset, input);
   console.log("ok", asset.base);
 }
