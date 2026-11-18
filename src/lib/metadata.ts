@@ -58,3 +58,16 @@ export function softwareApplicationJsonLd(): Record<string, unknown> {
     },
   };
 }
+
+/** FAQPage structured data for /faq/. Pass exactly the questions and answers the page shows. */
+export function faqPageJsonLd(entries: { question: string; answer: string }[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: entries.map((entry) => ({
+      "@type": "Question",
+      name: entry.question,
+      acceptedAnswer: { "@type": "Answer", text: entry.answer },
+    })),
+  };
+}

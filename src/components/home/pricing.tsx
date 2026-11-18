@@ -6,18 +6,29 @@ import { Section } from "../ui/section";
 import { Pill } from "../ui/status-badge";
 import { TelegramCta } from "../ui/telegram-cta";
 
+type PricingProps = {
+  /** `h1` when the card opens the pricing page, where it also sits closer to the nav. */
+  headingLevel?: "h1" | "h2";
+};
+
 /** One price, one card. Speed-fee amounts appear only once the owner publishes them in the config. */
-export function Pricing() {
+export function Pricing({ headingLevel: Heading = "h2" }: PricingProps) {
   const { access, speedFees } = site;
+  const opensPage = Heading === "h1";
 
   return (
-    <Section id="pricing" labelledBy="pricing-title">
+    <Section
+      id="pricing"
+      labelledBy="pricing-title"
+      spacing={opensPage ? "none" : "default"}
+      className={opensPage ? "pt-12 pb-20 lg:pt-20 lg:pb-28" : undefined}
+    >
       <div className="grid items-center gap-x-8 gap-y-12 lg:grid-cols-12">
         <Reveal className="lg:col-span-6">
           <p className="text-eyebrow mb-5 text-rj-dim">{access.eyebrow}</p>
-          <h2 id="pricing-title" className="text-display-2">
+          <Heading id="pricing-title" className="text-display-2">
             {access.headline}
-          </h2>
+          </Heading>
           <p className="text-lede mt-5 max-w-[34rem]">{access.body}</p>
           <p className="mt-8 flex max-w-[34rem] items-start gap-3 text-base leading-relaxed text-rj-dim lg:text-[0.9375rem]">
             <Info aria-hidden="true" className="mt-1 size-4 shrink-0 text-rj-caption" strokeWidth={1.75} />

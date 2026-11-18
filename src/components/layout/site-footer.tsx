@@ -4,7 +4,7 @@ import { site } from "@/config/site";
 import { TelegramCta } from "../ui/telegram-cta";
 import { Lockup } from "./lockup";
 
-const LINK = "inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] text-rj-dim transition-colors duration-200 hover:text-rj-text lg:min-h-9";
+const LINK = "inline-flex min-h-11 min-w-11 items-center gap-1.5 text-[0.9375rem] text-rj-dim transition-colors duration-200 hover:text-rj-text lg:min-h-9";
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {
   return (
