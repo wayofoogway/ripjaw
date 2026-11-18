@@ -6,10 +6,10 @@
  * The outputs are committed, so this only needs re-running when the kit, the
  * asset registry (`src/lib/assets.ts`) or `site.demo.sampleHandle` changes.
  *
- * Three kit mockups are re-rendered from the kit's own HTML sources instead of
+ * Four kit mockups are re-rendered from the kit's own HTML sources instead of
  * being copied:
- *  - the snipe-confirm and lock-screen phones, with the real person's handle
- *    replaced by `site.demo.sampleHandle`;
+ *  - the Meme Radar alert, snipe-confirm and lock-screen phones, with the real
+ *    person's handle replaced by `site.demo.sampleHandle`;
  *  - the lock screen also loses its second notification, which showed a
  *    completed purchase and an unverified per-trade fee;
  *  - a second home-menu phone anchored to the top of the chat, so the wallet
@@ -67,6 +67,8 @@ const recipes: Record<AssetKey, Recipe> = {
   memeRadarConcept: { from: "kit", file: "images/meme-radar-concept.jpg" },
   safetyShieldConcept: { from: "kit", file: "images/safety-shield-concept.jpg" },
   speedOneTapConcept: { from: "kit", file: "images/speed-one-tap-concept.jpg" },
+  copyTradeNetwork: { from: "kit", file: "images/copy-trade-network.jpg" },
+  pushAlertsConcept: { from: "kit", file: "images/push-alerts-concept.jpg" },
 
   phoneHomeMenu: { from: "kit", file: "mockups/phone/01-home-menu-phone.png" },
   phoneSafetyCheck: { from: "kit", file: "mockups/phone/05-safety-check-phone.png" },
@@ -80,6 +82,10 @@ const recipes: Record<AssetKey, Recipe> = {
         1,
         "home-wallet phone",
       ),
+  },
+  phoneRadarAlert: {
+    from: "render",
+    html: () => withSampleHandle(kitHtml("02-meme-radar-alert-phone.html"), "radar-alert phone"),
   },
   phoneSnipeConfirm: {
     from: "render",
