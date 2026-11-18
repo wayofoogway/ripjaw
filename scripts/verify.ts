@@ -78,6 +78,16 @@ function equal<T>(name: string, actual: T, expected: T): void {
 
 const squash = (text: string) => text.replace(/\s+/g, " ").trim();
 
+/** Runs one set of checks. A step that throws (a timeout, a missing element) is one failure, not the end of the run. */
+async function group(name: string, run: () => Promise<void>): Promise<void> {
+  try {
+    await run();
+    passed += 1;
+  } catch (error) {
+    failures.push(`${name}: stopped: ${error instanceof Error ? squash(error.message) : String(error)}`);
+  }
+}
+
 /* ─────────────────── Functions that run in the page ─────────────────── */
 
 function pageFacts() {
@@ -349,12 +359,12 @@ function contrastFacts() {
 
   for (const icon of document.querySelectorAll("svg")) {
     const r = icon.getBoundingClientRect();
-    if (r.width === 0 || r.height === 0 || r.right <= 0) continue;
+    if (r.width === 0 || r.height === 0 || r.right <= 0 || opacityOf(icon) === 0) continue;
     judge(`icon in "${(icon.parentElement?.textContent ?? "").trim().slice(0, 30)}"`, [getComputedStyle(icon).color], backgroundOf(icon), opacityOf(icon), 3);
   }
   for (const field of document.querySelectorAll("input")) {
     const r = field.getBoundingClientRect();
-    if (r.width === 0 || r.height === 0 || r.right <= 0) continue;
+    if (r.width === 0 || r.height === 0 || r.right <= 0 || opacityOf(field) === 0) continue;
     const cs = getComputedStyle(field);
     judge(`border of the ${field.name} field`, [cs.borderTopColor], backgroundOf(field.parentElement), opacityOf(field), 3);
     judge(`placeholder of the ${field.name} field`, [getComputedStyle(field, "::placeholder").color], backgroundOf(field), opacityOf(field), 4.5);
@@ -561,7 +571,7 @@ async function checkAllPages(browser: Browser, base: string): Promise<void> {
     modes.map(async (mode) => {
       const context = await newContext(browser, mode, mode.width < 600);
       try {
-        for (const path of paths) await checkPage(context, base, mode, path);
+        for (const path of paths) await group(`${path} at ${modeLabel(mode)}`, () => checkPage(context, base, mode, path));
       } finally {
         await context.close();
       }
@@ -824,7 +834,7 @@ async function checkKeyboard(browser: Browser, base: string, width: number): Pro
 
 /* ─────────────────────── Early access form (open) ─────────────────────── */
 
-type Reply = "ok" | "ok-without-cors" | "server-error" | "network-failure" | "hold";
+type Reply = "ok" | "refused-by-cors" | "server-error" | "network-failure" | "hold";
 type Post = { method: string; contentType: string; fields: Record<string, string> };
 
 async function checkForm(browser: Browser, base: string, to: string, width: number): Promise<void> {
@@ -848,8 +858,9 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
       switch (control.reply) {
         case "ok":
           return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: '{"ok":true}' });
-        case "ok-without-cors":
-          return route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' });
+        case "refused-by-cors":
+          /* The destination saved the address but does not let this site read the answer. */
+          return route.fulfill({ status: 200, headers: { "access-control-allow-origin": "https://another-site.invalid" }, contentType: "application/json", body: '{"ok":true}' });
         case "server-error":
           return route.fulfill({ status: 500, headers: cors, contentType: "application/json", body: '{"ok":false}' });
         case "network-failure":
@@ -886,7 +897,7 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
   };
 
   /* Structure and labels. */
-  {
+  await group(`${at}: structure`, async () => {
     const s = await session("/");
     try {
       equal(`${at}: the field is an email field named by its label`, await s.email.evaluate((node: HTMLInputElement) => [node.type, node.name, node.autocomplete, node.getAttribute("aria-invalid")]), ["email", "email", "email", "false"]);
@@ -911,10 +922,10 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
     } finally {
       await s.close();
     }
-  }
+  });
 
   /* Validation: nothing is sent for an empty or malformed address. */
-  {
+  await group(`${at}: validation`, async () => {
     const s = await session("/faq/");
     try {
       await s.submit.click();
@@ -925,6 +936,7 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
         focused: document.activeElement === node,
       }));
       equal(`${at}: the error is tied to the field and the field takes focus`, wiring, { invalid: "true", describedByTheError: true, focused: true });
+      await s.page.waitForTimeout(750);
       equal(`${at}: an error passes contrast`, (await s.page.evaluate(contrastFacts)).failures, []);
       for (const bad of ["plainaddress", "name@", "@example.com", "name@example", "na me@example.com"]) {
         await s.email.fill(bad);
@@ -937,10 +949,10 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
     } finally {
       await s.close();
     }
-  }
+  });
 
   /* Success only after the destination has answered. */
-  {
+  await group(`${at}: success`, async () => {
     const s = await session("/");
     try {
       s.control.reply = "hold";
@@ -963,30 +975,32 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
     } finally {
       await s.close();
     }
-  }
+  });
 
   /* Failures are reported as failures, and never as success. */
-  for (const reply of ["server-error", "network-failure", "ok-without-cors"] as const) {
-    const s = await session("/features/");
-    try {
-      s.control.reply = reply;
-      await s.email.fill(sample);
-      await s.submit.click();
-      await s.alert.waitFor();
-      equal(`${at} ${reply}: reported as a failure`, squash(await s.alert.innerText()), signupCopy.errors.failed);
-      equal(`${at} ${reply}: no success message`, await s.done.count(), 0);
-      equal(`${at} ${reply}: the address is kept and the form can be sent again`, [await s.email.inputValue(), await s.email.getAttribute("aria-invalid"), await s.submit.isDisabled()], [sample, "false", false]);
-      s.control.reply = "ok";
-      await s.submit.click();
-      await s.done.waitFor();
-      equal(`${at} ${reply}: a retry that succeeds shows success`, [squash(await s.done.innerText()), s.posts.length], [signupCopy.success, 2]);
-    } finally {
-      await s.close();
-    }
+  for (const reply of ["server-error", "network-failure", "refused-by-cors"] as const) {
+    await group(`${at} ${reply}`, async () => {
+      const s = await session("/features/");
+      try {
+        s.control.reply = reply;
+        await s.email.fill(sample);
+        await s.submit.click();
+        await s.alert.waitFor();
+        equal(`${at} ${reply}: reported as a failure`, squash(await s.alert.innerText()), signupCopy.errors.failed);
+        equal(`${at} ${reply}: no success message`, await s.done.count(), 0);
+        equal(`${at} ${reply}: the address is kept and the form can be sent again`, [await s.email.inputValue(), await s.email.getAttribute("aria-invalid"), await s.submit.isDisabled()], [sample, "false", false]);
+        s.control.reply = "ok";
+        await s.submit.click();
+        await s.done.waitFor();
+        equal(`${at} ${reply}: a retry that succeeds shows success`, [squash(await s.done.innerText()), s.posts.length], [signupCopy.success, 2]);
+      } finally {
+        await s.close();
+      }
+    });
   }
 
   /* The trap field: a filled trap sends nothing. */
-  {
+  await group(`${at}: trap field`, async () => {
     const s = await session("/safety/");
     try {
       await s.form.locator('input[name="website"]').evaluate((node: HTMLInputElement) => {
@@ -999,7 +1013,7 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
     } finally {
       await s.close();
     }
-  }
+  });
 
   /* Referral codes: 3 to 20 letters or digits are sent, anything else is ignored. */
   const param = site.referral.queryParam;
@@ -1015,22 +1029,24 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
     { query: "", sent: null },
   ];
   for (const { query, sent } of codes) {
-    const s = await session(`/${query}`);
     const name = `${at} referral "${query}"`;
-    try {
-      equal(`${name}: code shown`, (await s.referral.count()) === 1 ? squash(await s.referral.innerText()) : null, sent === null ? null : `${signupCopy.referral}: ${sent}`);
-      await s.email.fill(sample);
-      await s.submit.click();
-      await s.done.waitFor();
-      equal(`${name}: fields sent`, s.posts[0]?.fields, sent === null ? { email: sample } : { email: sample, [param]: sent });
-      equal(`${name}: no console errors`, s.watcher.problems, []);
-    } finally {
-      await s.close();
-    }
+    await group(name, async () => {
+      const s = await session(`/${query}`);
+      try {
+        equal(`${name}: code shown`, (await s.referral.count()) === 1 ? squash(await s.referral.innerText()) : null, sent === null ? null : `${signupCopy.referral}: ${sent}`);
+        await s.email.fill(sample);
+        await s.submit.click();
+        await s.done.waitFor();
+        equal(`${name}: fields sent`, s.posts[0]?.fields, sent === null ? { email: sample } : { email: sample, [param]: sent });
+        equal(`${name}: no console errors`, s.watcher.problems, []);
+      } finally {
+        await s.close();
+      }
+    });
   }
 
   /* A code survives moving between pages, and a later bad code does not replace it. */
-  {
+  await group(`${at}: kept referral code`, async () => {
     const s = await session(`/?${param}=ABC123`);
     try {
       await s.page.locator('footer nav a[href="/faq/"]').click();
@@ -1047,7 +1063,7 @@ async function checkForm(browser: Browser, base: string, to: string, width: numb
     } finally {
       await s.close();
     }
-  }
+  });
 }
 
 /* ───────────────────────── The other state ───────────────────────── */
@@ -1095,11 +1111,12 @@ const server = await startServer(root, 0);
 const browser = await chromium.launch({ executablePath: chromePath, args: ["--no-sandbox"] });
 try {
   console.log(`verify: early access "${state}", serving ${root}/out at ${server.url}`);
-  await checkAllPages(browser, server.url);
-  await checkContent(browser, server.url);
-  for (const width of [1440, 390]) await checkKeyboard(browser, server.url, width);
+  const base = server.url;
+  await checkAllPages(browser, base);
+  await group("content", () => checkContent(browser, base));
+  for (const width of [1440, 390]) await group(`keyboard at ${width}px`, () => checkKeyboard(browser, base, width));
   if (destination !== null) {
-    for (const width of [390, 1440]) await checkForm(browser, server.url, destination, width);
+    for (const width of [390, 1440]) await checkForm(browser, base, destination, width);
   }
 } finally {
   await browser.close();

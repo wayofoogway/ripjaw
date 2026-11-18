@@ -103,7 +103,7 @@ export function SignupForm({ destination, referral, copy }: SignupFormProps) {
       <label htmlFor={emailId} className="block text-[0.9375rem] font-medium text-rj-text">
         {copy.emailLabel}
       </label>
-      <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <input
           ref={email}
           id={emailId}
@@ -119,14 +119,14 @@ export function SignupForm({ destination, referral, copy }: SignupFormProps) {
           aria-invalid={error?.field === true}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            "h-12 w-full min-w-0 flex-1 rounded-lg border bg-rj-surface px-4 text-base text-rj-text placeholder:text-rj-caption",
+            "h-12 w-full min-w-0 rounded-lg border bg-rj-surface px-4 text-base text-rj-text placeholder:text-rj-caption",
             error?.field ? "border-rj-fail" : "border-rj-muted",
           )}
         />
         <button
           type="submit"
           disabled={sending}
-          className="h-12 shrink-0 rounded-lg bg-rj-text px-6 text-base font-semibold text-rj-bg transition-opacity duration-200 hover:opacity-90 disabled:opacity-60"
+          className="h-12 rounded-lg bg-rj-text px-6 text-base font-semibold text-rj-bg transition-opacity duration-200 hover:opacity-90 disabled:opacity-60"
         >
           {sending ? copy.sending : copy.submit}
         </button>
