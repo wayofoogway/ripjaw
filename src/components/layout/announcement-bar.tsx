@@ -15,8 +15,8 @@ export function AnnouncementBar({ text, linkLabel, href }: AnnouncementBarProps)
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
   return (
-    <aside aria-label="Announcement" className="relative z-40 bg-rj-surface">
-      <div className="container-rj flex min-h-10 items-center justify-center gap-x-3 py-2 pr-12 text-[0.8125rem] leading-snug text-rj-dim sm:pr-14">
+    <aside aria-label="Announcement" className="relative z-[55] bg-rj-surface">
+      <div className="container-rj flex min-h-11 items-center justify-center gap-x-3 py-2 pr-12 text-[0.8125rem] leading-snug text-rj-dim sm:pr-14">
         <p>
           {text}{" "}
           <Link
@@ -39,7 +39,7 @@ export function AnnouncementBar({ text, linkLabel, href }: AnnouncementBarProps)
       >
         <X aria-hidden="true" className="size-4" />
       </button>
-      <div aria-hidden="true" className="h-px bg-[image:var(--rj-gradient)] opacity-50" />
+      <div aria-hidden="true" className="pointer-events-none h-px bg-[image:var(--rj-gradient)] opacity-50" />
     </aside>
   );
 }
