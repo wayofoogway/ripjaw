@@ -30,12 +30,15 @@ export const assets = {
   memeRadarConcept: { base: "/images/meme-radar-concept", widths: [800, 1280], width: 1280, height: 720 },
   safetyShieldConcept: { base: "/images/safety-shield-concept", widths: [640, 1152], width: 1152, height: 864 },
   speedOneTapConcept: { base: "/images/speed-one-tap-concept", widths: [800, 1280], width: 1280, height: 720 },
+  copyTradeNetwork: { base: "/images/copy-trade-network", widths: [800, 1280], width: 1280, height: 720 },
+  pushAlertsConcept: { base: "/images/push-alerts-concept", widths: [640, 1152], width: 1152, height: 864 },
 
   phoneHomeMenu: phone("home-menu"),
   phoneHomeWallet: phone("home-wallet"),
   phoneSafetyCheck: phone("safety-check"),
   phoneLockscreenAlert: phone("lockscreen-alert"),
   phoneSnipeConfirm: phone("snipe-confirm"),
+  phoneRadarAlert: phone("radar-alert"),
 
   chatHomeMenu: { base: "/mockups/chat-home-menu", widths: [460, 920], width: 920, height: 1290 },
   chatHomeWallet: { base: "/mockups/chat-home-wallet", widths: [460, 920], width: 920, height: 830 },
