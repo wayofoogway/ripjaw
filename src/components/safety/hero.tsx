@@ -50,7 +50,7 @@ export function SafetyHero() {
                 <ArrowDown aria-hidden="true" className="size-4 text-rj-dim" />
               </ButtonLink>
             </div>
-            <p className="mt-6 max-w-[30rem] text-[0.8125rem] leading-relaxed text-rj-caption">{hero.note}</p>
+            <p className="mt-6 max-w-[30rem] text-base leading-relaxed text-rj-caption lg:text-[0.8125rem]">{hero.note}</p>
           </div>
 
           <figure className="relative mx-auto w-full max-w-[22rem] lg:col-span-5 lg:col-start-8 lg:max-w-[26rem]">

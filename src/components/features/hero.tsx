@@ -39,7 +39,7 @@ export function FeaturesHero() {
                 <ArrowDown aria-hidden="true" className="size-4 text-rj-dim" />
               </ButtonLink>
             </div>
-            <p className="mt-6 max-w-[31rem] text-[0.8125rem] leading-relaxed text-rj-caption">{hero.note}</p>
+            <p className="mt-6 max-w-[31rem] text-base leading-relaxed text-rj-caption lg:text-[0.8125rem]">{hero.note}</p>
           </div>
 
           <div className="relative mx-auto w-full max-w-[25rem] pb-24 lg:col-span-5 lg:col-start-8 lg:max-w-[27rem] lg:pb-16">
